@@ -92,10 +92,10 @@ def load_data_cls(partition):
         f.close()
         all_data.append(data)
         all_label.append(label)
-   if len(all_data) > 0:
-    all_data = np.concatenate(all_data, axis=0)
-else:
-    raise ValueError("No data loaded. Check your dataset paths.")
+    if len(all_data) > 0:
+        all_data = np.concatenate(all_data, axis=0)
+    else:
+        raise ValueError("No data loaded. Check your dataset paths.")
     all_label = np.concatenate(all_label, axis=0)
     return all_data, all_label
 
