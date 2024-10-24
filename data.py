@@ -28,6 +28,11 @@ from torch.utils.data import Dataset
 def download_modelnet40():
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     DATA_DIR = os.path.join(BASE_DIR, 'data')
+    # 如果数据集已经上传，直接使用它的路径
+    if os.path.exists('/kaggle/input/modelnet40-ply-hdf5-2048'):
+        DATA_DIR = '/kaggle/input/modelnet40-ply-hdf5-2048'
+        print(f"Using uploaded dataset at {DATA_DIR}")
+        return DATA_DIR
     if not os.path.exists(DATA_DIR):
         os.mkdir(DATA_DIR)
     if not os.path.exists(os.path.join(DATA_DIR, 'modelnet40_ply_hdf5_2048')):
@@ -87,7 +92,10 @@ def load_data_cls(partition):
         f.close()
         all_data.append(data)
         all_label.append(label)
+   if len(all_data) > 0:
     all_data = np.concatenate(all_data, axis=0)
+else:
+    raise ValueError("No data loaded. Check your dataset paths.")
     all_label = np.concatenate(all_label, axis=0)
     return all_data, all_label
 
