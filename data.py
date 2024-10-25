@@ -29,8 +29,8 @@ def download_modelnet40():
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     DATA_DIR = os.path.join(BASE_DIR, 'data')
     # 如果数据集已经上传，直接使用它的路径
-    if os.path.exists('/kaggle/input/modelnet40-ply-hdf5-2048/modelnet40_ply_hdf5_2048'):
-        DATA_DIR = '/kaggle/input/modelnet40-ply-hdf5-2048/modelnet40_ply_hdf5_2048'
+    if os.path.exists('/kaggle/input/modelnet40-ply-hdf5-2048'):
+        DATA_DIR = '/kaggle/input/modelnet40-ply-hdf5-2048'
         print(f"Using uploaded dataset at {DATA_DIR}")
         return DATA_DIR
     if not os.path.exists(DATA_DIR):
@@ -81,9 +81,8 @@ def download_S3DIS():
 
 def load_data_cls(partition):
     download_modelnet40()
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    DATA_DIR = os.path.join(BASE_DIR, 'data')
-    DATA_DIR = '/kaggle/input/modelnet40-ply-hdf5-2048/modelnet40_ply_hdf5_2048'
+  
+    DATA_DIR = '/kaggle/input/modelnet40-ply-hdf5-2048'
     all_data = []
     all_label = []
     for h5_name in glob.glob(os.path.join(DATA_DIR, 'modelnet40_ply_hdf5_2048', '*%s*.h5'%partition)):
