@@ -46,6 +46,11 @@ def download_modelnet40():
 def download_shapenetpart():
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     DATA_DIR = os.path.join(BASE_DIR, 'data')
+      # 如果数据集已经上传，直接使用它的路径
+    if os.path.exists('/kaggle/input/stanford3ddataset-v1-2-aligned-version'):
+        DATA_DIR = '/kaggle/input/stanford3ddataset-v1-2-aligned-version'
+        print(f"Using uploaded dataset at {DATA_DIR}")
+        return DATA_DIR
     if not os.path.exists(DATA_DIR):
         os.mkdir(DATA_DIR)
     if not os.path.exists(os.path.join(DATA_DIR, 'shapenet_part_seg_hdf5_data')):
@@ -59,6 +64,11 @@ def download_shapenetpart():
 def download_S3DIS():
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     DATA_DIR = os.path.join(BASE_DIR, 'data')
+     # 如果数据集已经上传，直接使用它的路径
+    if os.path.exists('/kaggle/input/stanford3ddataset-v1-2-aligned-version'):
+        DATA_DIR = '/kaggle/input/stanford3ddataset-v1-2-aligned-version'
+        print(f"Using uploaded dataset at {DATA_DIR}")
+        return DATA_DIR
     if not os.path.exists(DATA_DIR):
         os.mkdir(DATA_DIR)
     if not os.path.exists(os.path.join(DATA_DIR, 'indoor3d_sem_seg_hdf5_data')):
@@ -113,7 +123,7 @@ def load_data_partseg(partition):
     else:
         file = glob.glob(os.path.join(DATA_DIR, 'shapenet_part_seg_hdf5_data', '*%s*.h5'%partition))
     for h5_name in file:
-        f = h5py.File(h5_name, 'r+')
+        f = h5py.File(h5_name, 'r')
         data = f['data'][:].astype('float32')
         label = f['label'][:].astype('int64')
         seg = f['pid'][:].astype('int64')
