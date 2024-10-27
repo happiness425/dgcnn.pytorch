@@ -188,17 +188,17 @@ def load_data_semseg(partition, test_area):
         
     data_batchlist, label_batchlist = [], []
     for f in all_files:
-        file_path = os.path.join(DATA_DIR, f)  # 拼接文件路径
-        print(f"Loading file: {file_path}")  # 添加打印语句来检查路径
+        file_path = os.path.join(DATA_DIR, os.path.basename(f))  # 使用 os.path.basename 获取文件名
+        print(f"Loading file: {file_path}")  # 打印文件路径
         try:
             file = h5py.File(file_path, 'r')
             data = file["data"][:]
             label = file["label"][:]
             data_batchlist.append(data)
             label_batchlist.append(label)
-            file.close()  # 确保文件关闭
+            file.close()
         except FileNotFoundError as e:
-            print(f"File not found: {file_path}")  # 打印错误信息
+            print(f"File not found: {file_path}")
             raise e
     
     # 合并所有数据和标签
