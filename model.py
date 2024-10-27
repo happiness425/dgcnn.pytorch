@@ -81,49 +81,42 @@ class SelectiveKernel(nn.Module):
         self.kernel_sizes = kernel_sizes
         self.out_channels = out_channels
 
-        # 不再直接使用 num_points
         self.fc = nn.Sequential(
-            nn.Linear(len(kernel_sizes) * out_channels, len(kernel_sizes)),  # 修改为不使用 num_points
+            nn.Linear(len(kernel_sizes) * out_channels, len(kernel_sizes)),
             nn.Softmax(dim=-1)
         )
 
     def forward(self, x):
-        print("Input to SKN:", x.shape)  # 输出输入的形状
-    
-        # 收集所有卷积的输出
+        print("Input to SKN:", x.shape)
+        
         conv_outputs = [conv(x) for conv in self.convs]
         
-        # 确保 conv_outputs 不是空的
         if not conv_outputs:
             raise ValueError("conv_outputs is empty. Check your convolution layers.")
-    
+        
         # 进行拼接
         concat_output = torch.cat(conv_outputs, dim=1)  # (batch_size, len(kernel_sizes) * out_channels, num_points)
-    
-        # 获取 batch_size 和 num_points
-        batch_size = concat_output.size(0)
-        num_points = concat_output.size(2)
-    
+
+        # 使用全局平均池化移除 num_points 维度
+        concat_output = concat_output.mean(dim=-1)  # (batch_size, len(kernel_sizes) * out_channels)
+
         # 计算选择权重
-        weight = self.fc(concat_output.view(batch_size, -1))  # 展平并计算权重
-        print("Weight shape before reshaping:", weight.shape)
-    
+        weight = self.fc(concat_output)  # 直接用展平的输出
+
         # 确保 weight 形状为 (batch_size, len(kernel_sizes))
-        weight = weight.view(batch_size, -1, 1, 1)  # (batch_size, num_kernels, 1, 1)
-    
+        weight = weight.view(weight.size(0), -1, 1)  # (batch_size, num_kernels, 1)
+
         # 将 conv_outputs 变为合适的形状
         out = torch.stack(conv_outputs, dim=1)  # (batch_size, len(kernel_sizes), out_channels, num_points)
-    
-        # 确保 out 的形状正确
-        print("Output shape before weighting:", out.shape)  # 输出 out 的形状
-    
+
         # 加权
-        out = out * weight  # 根据权重进行加权
-    
+        out = out * weight.unsqueeze(-1)  # 根据权重进行加权
+
         # 聚合结果
         out = out.sum(dim=1)  # (batch_size, out_channels, num_points)
-    
+        
         return out.squeeze(-1)  # 返回的形状是 (batch_size, out_channels, num_points)
+
     
 
 
