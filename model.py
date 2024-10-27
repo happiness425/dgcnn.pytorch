@@ -194,6 +194,12 @@ class DGCNN_cls(nn.Module):
         x4 = x.max(dim=-1, keepdim=False)[0]    # (batch_size, 256, num_points, k) -> (batch_size, 256, num_points)
 
         x = torch.cat((x1, x2, x3, x4), dim=1)  # (batch_size, 64+64+128+256, num_points)
+        
+        print(f'x1 shape: {x1.shape}')
+        print(f'x2 shape: {x2.shape}')
+        print(f'x3 shape: {x3.shape}')
+        print(f'x4 shape: {x4.shape}')
+        print(f'Before concat, x shape: {x.shape}')
 
                  # 使用 SKN
         x = self.skn1(x)  # 添加 SK 模块
