@@ -146,23 +146,66 @@ def prepare_test_data_semseg():
         os.system('python prepare_data/gen_indoor3d_h5.py')
 
 
-def load_data_semseg(partition, test_area):
+# def load_data_semseg(partition, test_area):
    
+#     DATA_DIR = '/kaggle/input/indoor3d-sem-seg-hdf5-data/indoor3d_sem_seg_hdf5_data'
+    
+#     with open(os.path.join(DATA_DIR, "all_files.txt")) as f:
+#         all_files = [line.rstrip() for line in f]
+#     with open(os.path.join(DATA_DIR, "room_filelist.txt")) as f:
+#         room_filelist = [line.rstrip() for line in f]
+#     data_batchlist, label_batchlist = [], []
+#     for f in all_files:
+#         file = h5py.File(os.path.join(DATA_DIR, f), 'r')
+#         data = file["data"][:]
+#         label = file["label"][:]
+#         data_batchlist.append(data)
+#         label_batchlist.append(label)
+#     data_batches = np.concatenate(data_batchlist, 0)
+#     seg_batches = np.concatenate(label_batchlist, 0)
+#     test_area_name = "Area_" + test_area
+#     train_idxs, test_idxs = [], []
+#     for i, room_name in enumerate(room_filelist):
+#         if test_area_name in room_name:
+#             test_idxs.append(i)
+#         else:
+#             train_idxs.append(i)
+#     if partition == 'train':
+#         all_data = data_batches[train_idxs, ...]
+#         all_seg = seg_batches[train_idxs, ...]
+#     else:
+#         all_data = data_batches[test_idxs, ...]
+#         all_seg = seg_batches[test_idxs, ...]
+#     return all_data, all_seg
+
+def load_data_semseg(partition, test_area):
     DATA_DIR = '/kaggle/input/indoor3d-sem-seg-hdf5-data/indoor3d_sem_seg_hdf5_data'
     
     with open(os.path.join(DATA_DIR, "all_files.txt")) as f:
         all_files = [line.rstrip() for line in f]
     with open(os.path.join(DATA_DIR, "room_filelist.txt")) as f:
         room_filelist = [line.rstrip() for line in f]
+        
     data_batchlist, label_batchlist = [], []
     for f in all_files:
-        file = h5py.File(os.path.join(DATA_DIR, f), 'r')
-        data = file["data"][:]
-        label = file["label"][:]
-        data_batchlist.append(data)
-        label_batchlist.append(label)
+        file_path = os.path.join(DATA_DIR, f)  # 拼接文件路径
+        print(f"Loading file: {file_path}")  # 添加打印语句来检查路径
+        try:
+            file = h5py.File(file_path, 'r')
+            data = file["data"][:]
+            label = file["label"][:]
+            data_batchlist.append(data)
+            label_batchlist.append(label)
+            file.close()  # 确保文件关闭
+        except FileNotFoundError as e:
+            print(f"File not found: {file_path}")  # 打印错误信息
+            raise e
+    
+    # 合并所有数据和标签
     data_batches = np.concatenate(data_batchlist, 0)
     seg_batches = np.concatenate(label_batchlist, 0)
+    
+    # 区分训练集和测试集
     test_area_name = "Area_" + test_area
     train_idxs, test_idxs = [], []
     for i, room_name in enumerate(room_filelist):
@@ -170,14 +213,16 @@ def load_data_semseg(partition, test_area):
             test_idxs.append(i)
         else:
             train_idxs.append(i)
+            
+    # 根据 partition 参数选择数据
     if partition == 'train':
         all_data = data_batches[train_idxs, ...]
         all_seg = seg_batches[train_idxs, ...]
     else:
         all_data = data_batches[test_idxs, ...]
         all_seg = seg_batches[test_idxs, ...]
+        
     return all_data, all_seg
-
 
 def load_color_partseg():
     colors = []
