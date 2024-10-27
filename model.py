@@ -89,21 +89,23 @@ class SelectiveKernel(nn.Module):
 
     def forward(self, x):
         print("Input to SKN:", x.shape)  # 应该是 [batch_size, in_channels, num_points, k]
-        
+    
         # 收集所有卷积的输出
         conv_outputs = [conv(x) for conv in self.convs]
         concat_output = torch.cat(conv_outputs, dim=1)  # (batch_size, len(kernel_sizes) * out_channels, num_points, k)
-
+    
         # 计算选择权重
         batch_size = concat_output.size(0)
         num_points = concat_output.size(2)  # 获取 num_points
-        weight = self.fc(concat_output.view(batch_size, -1))  # 展平为 (batch_size, -1)
-
+        # 只展平除 batch_size 以外的维度
+        weight = self.fc(concat_output.view(batch_size, -1, num_points).mean(dim=2))  # 使用平均值，得到 (batch_size, len(kernel_sizes))
+    
         # 加权融合
         out = torch.stack(conv_outputs, dim=1)  # (batch_size, len(kernel_sizes), out_channels, num_points, k)
         out = (out * weight.unsqueeze(2).unsqueeze(3)).sum(dim=1)  # 根据权重进行加权
-
+    
         return out.squeeze(-1)  # 返回的形状是 (batch_size, out_channels, num_points)
+
 
 class PointNet(nn.Module):
     def __init__(self, args, output_channels=40):
