@@ -239,6 +239,13 @@ class DGCNN_partseg(nn.Module):
         self.seg_num_all = seg_num_all
         self.k = args.k
         self.transform_net = Transform_Net(args)
+
+          # 创建注意力模块
+        self.attention1 = SEBlock(64)
+        self.attention2 = SEBlock(64)
+        self.attention3 = SEBlock(64)
+        self.attention4 = SEBlock(64)
+        self.attention5 = SEBlock(64)
         
         self.bn1 = nn.BatchNorm2d(64)
         self.bn2 = nn.BatchNorm2d(64)
@@ -298,16 +305,21 @@ class DGCNN_partseg(nn.Module):
 
         x = get_graph_feature(x, k=self.k)      # (batch_size, 3, num_points) -> (batch_size, 3*2, num_points, k)
         x = self.conv1(x)                       # (batch_size, 3*2, num_points, k) -> (batch_size, 64, num_points, k)
+        x = self.attention1(x)  # 注意力机制
         x = self.conv2(x)                       # (batch_size, 64, num_points, k) -> (batch_size, 64, num_points, k)
+        x = self.attention2(x)  # 注意力机制
         x1 = x.max(dim=-1, keepdim=False)[0]    # (batch_size, 64, num_points, k) -> (batch_size, 64, num_points)
 
         x = get_graph_feature(x1, k=self.k)     # (batch_size, 64, num_points) -> (batch_size, 64*2, num_points, k)
         x = self.conv3(x)                       # (batch_size, 64*2, num_points, k) -> (batch_size, 64, num_points, k)
+        x = self.attention3(x)  # 注意力机制
         x = self.conv4(x)                       # (batch_size, 64, num_points, k) -> (batch_size, 64, num_points, k)
+        x = self.attention4(x)  # 注意力机制
         x2 = x.max(dim=-1, keepdim=False)[0]    # (batch_size, 64, num_points, k) -> (batch_size, 64, num_points)
 
         x = get_graph_feature(x2, k=self.k)     # (batch_size, 64, num_points) -> (batch_size, 64*2, num_points, k)
         x = self.conv5(x)                       # (batch_size, 64*2, num_points, k) -> (batch_size, 64, num_points, k)
+        x = self.attention5(x)  # 注意力机制
         x3 = x.max(dim=-1, keepdim=False)[0]    # (batch_size, 64, num_points, k) -> (batch_size, 64, num_points)
 
         x = torch.cat((x1, x2, x3), dim=1)      # (batch_size, 64*3, num_points)
@@ -374,6 +386,16 @@ class DGCNN_semseg_s3dis(nn.Module):
                                    nn.LeakyReLU(negative_slope=0.2))
         self.dp1 = nn.Dropout(p=args.dropout)
         self.conv9 = nn.Conv1d(256, 13, kernel_size=1, bias=False)
+
+      # 添加 SE 模块
+        self.se1 = SEBlock(64)
+        self.se2 = SEBlock(64)
+        self.se3 = SEBlock(64)
+        self.se4 = SEBlock(64)
+        self.se5 = SEBlock(64)
+        self.se6 = SEBlock(args.emb_dims)
+        self.se7 = SEBlock(512)
+        self.se8 = SEBlock(256)
         
 
     def forward(self, x):
@@ -382,28 +404,36 @@ class DGCNN_semseg_s3dis(nn.Module):
 
         x = get_graph_feature(x, k=self.k, dim9=True)   # (batch_size, 9, num_points) -> (batch_size, 9*2, num_points, k)
         x = self.conv1(x)                       # (batch_size, 9*2, num_points, k) -> (batch_size, 64, num_points, k)
+        x = self.se1(x)  # 添加 SE 模块
         x = self.conv2(x)                       # (batch_size, 64, num_points, k) -> (batch_size, 64, num_points, k)
+        x = self.se2(x)  # 添加 SE 模块
         x1 = x.max(dim=-1, keepdim=False)[0]    # (batch_size, 64, num_points, k) -> (batch_size, 64, num_points)
 
         x = get_graph_feature(x1, k=self.k)     # (batch_size, 64, num_points) -> (batch_size, 64*2, num_points, k)
         x = self.conv3(x)                       # (batch_size, 64*2, num_points, k) -> (batch_size, 64, num_points, k)
+        x = self.se3(x)  # 添加 SE 模块
         x = self.conv4(x)                       # (batch_size, 64, num_points, k) -> (batch_size, 64, num_points, k)
+        x = self.se4(x)  # 添加 SE 模块
         x2 = x.max(dim=-1, keepdim=False)[0]    # (batch_size, 64, num_points, k) -> (batch_size, 64, num_points)
 
         x = get_graph_feature(x2, k=self.k)     # (batch_size, 64, num_points) -> (batch_size, 64*2, num_points, k)
         x = self.conv5(x)                       # (batch_size, 64*2, num_points, k) -> (batch_size, 64, num_points, k)
+        x = self.se5(x)  # 添加 SE 模块
         x3 = x.max(dim=-1, keepdim=False)[0]    # (batch_size, 64, num_points, k) -> (batch_size, 64, num_points)
 
         x = torch.cat((x1, x2, x3), dim=1)      # (batch_size, 64*3, num_points)
 
         x = self.conv6(x)                       # (batch_size, 64*3, num_points) -> (batch_size, emb_dims, num_points)
+        x = self.se6(x)  # 添加 SE 模块
         x = x.max(dim=-1, keepdim=True)[0]      # (batch_size, emb_dims, num_points) -> (batch_size, emb_dims, 1)
 
         x = x.repeat(1, 1, num_points)          # (batch_size, 1024, num_points)
         x = torch.cat((x, x1, x2, x3), dim=1)   # (batch_size, 1024+64*3, num_points)
 
         x = self.conv7(x)                       # (batch_size, 1024+64*3, num_points) -> (batch_size, 512, num_points)
+        x = self.se7(x)  # 添加 SE 模块
         x = self.conv8(x)                       # (batch_size, 512, num_points) -> (batch_size, 256, num_points)
+        x = self.se8(x)  # 添加 SE 模块
         x = self.dp1(x)
         x = self.conv9(x)                       # (batch_size, 256, num_points) -> (batch_size, 13, num_points)
         
