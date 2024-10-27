@@ -100,16 +100,16 @@ class SelectiveKernel(nn.Module):
         # 进行拼接
         concat_output = torch.cat(conv_outputs, dim=1)  # (batch_size, len(kernel_sizes) * out_channels, num_points)
     
-        # 计算选择权重
+        # 获取 batch_size 和 num_points
         batch_size = concat_output.size(0)
-        num_points = concat_output.size(2)  # 获取 num_points
-        weight = self.fc(concat_output.view(batch_size, -1))  # 计算权重
+        num_points = concat_output.size(2)
     
-        # 确保 weight 形状为 (batch_size, len(kernel_sizes))
+        # 计算选择权重
+        weight = self.fc(concat_output.view(batch_size, -1))  # 展平并计算权重
         print("Weight shape before reshaping:", weight.shape)
     
-        # 重新调整 weight 形状
-        weight = weight.view(batch_size, -1, 1, 1)  # (batch_size, len(kernel_sizes), 1, 1)
+        # 确保 weight 形状为 (batch_size, len(kernel_sizes))
+        weight = weight.view(batch_size, -1, 1, 1)  # (batch_size, num_kernels, 1, 1)
     
         # 将 conv_outputs 变为合适的形状
         out = torch.stack(conv_outputs, dim=1)  # (batch_size, len(kernel_sizes), out_channels, num_points)
@@ -124,10 +124,7 @@ class SelectiveKernel(nn.Module):
         out = out.sum(dim=1)  # (batch_size, out_channels, num_points)
     
         return out.squeeze(-1)  # 返回的形状是 (batch_size, out_channels, num_points)
-
-
-
-
+    
 
 
 class PointNet(nn.Module):
