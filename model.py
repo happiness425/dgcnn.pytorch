@@ -95,6 +95,7 @@ class SelectiveKernel(nn.Module):
 
         # 加权融合
         out = sum(w * conv_out for w, conv_out in zip(weight, conv_outputs))
+        print(f'SelectiveKernel input shape: {x.shape}')
         return out
 
 
