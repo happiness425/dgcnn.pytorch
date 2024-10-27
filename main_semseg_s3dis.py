@@ -64,7 +64,7 @@ def visualization(visu, visu_format, test_choice, data, seg, pred, visual_file_i
         RGB = []
         RGB_gt = [] 
         skip = False
-        with open("data/indoor3d_sem_seg_hdf5_data_test/room_filelist.txt") as f:
+        with open("/kaggle/input/indoor3d-sem-seg-hdf5-data/indoor3d_sem_seg_hdf5_data/room_filelist.txt") as f:
             files = f.readlines()
             test_area = files[visual_file_index][5]
             roomname = files[visual_file_index][7:-1]
