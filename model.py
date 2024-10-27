@@ -142,7 +142,7 @@ class DGCNN_cls(nn.Module):
         self.bn4 = nn.BatchNorm2d(256)
         self.bn5 = nn.BatchNorm1d(args.emb_dims)
 
-        self.skn1 = SelectiveKernel(64+64+128+256, args)  # 使用合适的输入通道数 512
+        self.skn1 = SelectiveKernel(64+64+128+256, args.emb_dims)  # 使用合适的输入通道数 512
         
         self.conv1 = nn.Sequential(nn.Conv2d(6, 64, kernel_size=1, bias=False),
                                    self.bn1,
@@ -286,7 +286,7 @@ class DGCNN_partseg(nn.Module):
         self.bn9 = nn.BatchNorm1d(256)
         self.bn10 = nn.BatchNorm1d(128)
 
-        self.skn1 = SelectiveKernel(64*3, args)  # 使用合适的输入通道数 1280
+        self.skn1 = SelectiveKernel(64*5, args.emb_dims)  # 使用合适的输入通道数 1280
 
         
         self.conv1 = nn.Sequential(nn.Conv2d(6, 64, kernel_size=1, bias=False),
@@ -393,7 +393,7 @@ class DGCNN_semseg_s3dis(nn.Module):
         self.bn7 = nn.BatchNorm1d(512)
         self.bn8 = nn.BatchNorm1d(256)
         
-        self.skn1 = SelectiveKernel(1024+64*3, args)  # 输入通道数为合并后的通道数
+        self.skn1 = SelectiveKernel(64*5, args)  # 输入通道数为合并后的通道数
 
         self.conv1 = nn.Sequential(nn.Conv2d(18, 64, kernel_size=1, bias=False),
                                    self.bn1,
@@ -457,6 +457,8 @@ class DGCNN_semseg_s3dis(nn.Module):
         x3 = x.max(dim=-1, keepdim=False)[0]    # (batch_size, 64, num_points, k) -> (batch_size, 64, num_points)
 
         x = torch.cat((x1, x2, x3), dim=1)      # (batch_size, 64*3, num_points)
+         # 使用 SKN
+        x = self.skn1(x)
 
         x = self.conv6(x)                       # (batch_size, 64*3, num_points) -> (batch_size, emb_dims, num_points)
         x = self.se6(x)  # 添加 SE 模块
@@ -464,9 +466,6 @@ class DGCNN_semseg_s3dis(nn.Module):
 
         x = x.repeat(1, 1, num_points)          # (batch_size, 1024, num_points)
         x = torch.cat((x, x1, x2, x3), dim=1)   # (batch_size, 1024+64*3, num_points)
-
-        # 使用 SKN
-        x = self.skn1(x)
 
         x = self.conv7(x)                       # (batch_size, 1024+64*3, num_points) -> (batch_size, 512, num_points)
         x = self.se7(x)  # 添加 SE 模块
