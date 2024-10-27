@@ -112,16 +112,16 @@ def load_data_cls(partition):
 
 def load_data_partseg(partition):
     download_shapenetpart()
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    DATA_DIR = os.path.join(BASE_DIR, 'data')
+  
+    DATA_DIR = '/kaggle/input/shapenet-part-seg-hdf5-data'
     all_data = []
     all_label = []
     all_seg = []
     if partition == 'trainval':
-        file = glob.glob(os.path.join(DATA_DIR, 'shapenet_part_seg_hdf5_data', '*train*.h5')) \
-               + glob.glob(os.path.join(DATA_DIR, 'shapenet_part_seg_hdf5_data', '*val*.h5'))
+        file = glob.glob(os.path.join(DATA_DIR, 'hdf5_data', '*train*.h5')) \
+               + glob.glob(os.path.join(DATA_DIR, 'hdf5_data', '*val*.h5'))
     else:
-        file = glob.glob(os.path.join(DATA_DIR, 'shapenet_part_seg_hdf5_data', '*%s*.h5'%partition))
+        file = glob.glob(os.path.join(DATA_DIR, 'hdf5_data', '*%s*.h5'%partition))
     for h5_name in file:
         f = h5py.File(h5_name, 'r')
         data = f['data'][:].astype('float32')
@@ -147,8 +147,8 @@ def prepare_test_data_semseg():
 
 
 def load_data_semseg(partition, test_area):
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    DATA_DIR = os.path.join(BASE_DIR, 'data')
+   
+    DATA_DIR = '/kaggle/input/indoor3d-sem-seg-hdf5-data'
     download_S3DIS()
     prepare_test_data_semseg()
     if partition == 'train':
