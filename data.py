@@ -151,9 +151,9 @@ def load_data_semseg(partition, test_area):
     DATA_DIR = '/kaggle/input/indoor3d-sem-seg-hdf5-data/indoor3d_sem_seg_hdf5_data'
     download_S3DIS()
     prepare_test_data_semseg()
-    with open(os.path.join(data_dir, "all_files.txt")) as f:
+    with open(os.path.join(DATA_DIR, "all_files.txt")) as f:
         all_files = [line.rstrip() for line in f]
-    with open(os.path.join(data_dir, "room_filelist.txt")) as f:
+    with open(os.path.join(DATA_DIR, "room_filelist.txt")) as f:
         room_filelist = [line.rstrip() for line in f]
     data_batchlist, label_batchlist = [], []
     for f in all_files:
