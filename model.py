@@ -79,30 +79,30 @@ class SelectiveKernel(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_sizes=[3, 5, 7]):
         super(SelectiveKernel, self).__init__()
         self.convs = nn.ModuleList([nn.Conv2d(in_channels, out_channels, kernel_size=k, padding=k//2) for k in kernel_sizes])
+        # 更新全连接层的输入大小
         self.fc = nn.Sequential(
-            nn.Linear(len(kernel_sizes) * out_channels, len(kernel_sizes)),
+            nn.Linear(len(kernel_sizes) * out_channels * num_points, len(kernel_sizes)),  # 注意这里的输入大小
             nn.Softmax(dim=-1)
         )
 
     def forward(self, x):
         print("Input to SKN:", x.shape)  # 应该是 [batch_size, in_channels, num_points, k]
-
-        # 收集所有卷积的输出
-        conv_outputs = [conv(x) for conv in self.convs]  # 每个输出的形状是 [batch_size, out_channels, num_points, k]
         
-        # 连接所有卷积输出
+        # 收集所有卷积的输出
+        conv_outputs = [conv(x) for conv in self.convs]
         concat_output = torch.cat(conv_outputs, dim=1)  # (batch_size, len(kernel_sizes) * out_channels, num_points, k)
 
         # 计算选择权重
         batch_size = concat_output.size(0)
-        weight = self.fc(concat_output.view(batch_size, -1))  # (batch_size, len(kernel_sizes))
+        num_points = concat_output.size(2)  # 获取 num_points
+        weight = self.fc(concat_output.view(batch_size, -1))  # 展平为 (batch_size, -1)
 
         # 加权融合
         out = torch.stack(conv_outputs, dim=1)  # (batch_size, len(kernel_sizes), out_channels, num_points, k)
-        out = (out * weight.unsqueeze(2).unsqueeze(3)).sum(dim=1)  # 根据权重进行加权，保持 [batch_size, out_channels, num_points, k]
+        out = (out * weight.unsqueeze(2).unsqueeze(3)).sum(dim=1)  # 根据权重进行加权
 
-        # 去掉最后一个维度 k
         return out.squeeze(-1)  # 返回的形状是 (batch_size, out_channels, num_points)
+
 
 
 
