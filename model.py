@@ -97,23 +97,34 @@ class SelectiveKernel(nn.Module):
         if not conv_outputs:
             raise ValueError("conv_outputs is empty. Check your convolution layers.")
     
-        concat_output = torch.cat(conv_outputs, dim=1)  # (batch_size, len(kernel_sizes) * out_channels, num_points, k)
+        # 进行拼接
+        concat_output = torch.cat(conv_outputs, dim=1)  # (batch_size, len(kernel_sizes) * out_channels, num_points)
     
         # 计算选择权重
         batch_size = concat_output.size(0)
         num_points = concat_output.size(2)  # 获取 num_points
-        weight = self.fc(concat_output.view(batch_size, -1, num_points).mean(dim=2))  # 计算权重
+        weight = self.fc(concat_output.view(batch_size, -1))  # 计算权重
     
-        # 重新调整 weight 的形状以匹配 out
+        # 确保 weight 形状为 (batch_size, len(kernel_sizes))
+        print("Weight shape before reshaping:", weight.shape)
+    
+        # 重新调整 weight 形状
         weight = weight.view(batch_size, -1, 1, 1)  # (batch_size, len(kernel_sizes), 1, 1)
     
         # 将 conv_outputs 变为合适的形状
-        out = torch.stack(conv_outputs, dim=1)  # (batch_size, len(kernel_sizes), out_channels, num_points, k)
+        out = torch.stack(conv_outputs, dim=1)  # (batch_size, len(kernel_sizes), out_channels, num_points)
+    
+        # 确保 out 的形状正确
+        print("Output shape before weighting:", out.shape)  # 输出 out 的形状
     
         # 加权
-        out = (out * weight).sum(dim=1)  # 根据权重进行加权
+        out = out * weight  # 根据权重进行加权
+    
+        # 聚合结果
+        out = out.sum(dim=1)  # (batch_size, out_channels, num_points)
     
         return out.squeeze(-1)  # 返回的形状是 (batch_size, out_channels, num_points)
+
 
 
 
