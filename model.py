@@ -88,7 +88,7 @@ class SelectiveKernel(nn.Module):
         )
 
     def forward(self, x):
-        print("Input to SKN:", x.shape)  # 应该是 [batch_size, in_channels, num_points, k]
+        print("Input to SKN:", x.shape)  # 输出输入的形状
     
         # 收集所有卷积的输出
         conv_outputs = [conv(x) for conv in self.convs]
@@ -104,16 +104,17 @@ class SelectiveKernel(nn.Module):
         num_points = concat_output.size(2)  # 获取 num_points
         weight = self.fc(concat_output.view(batch_size, -1, num_points).mean(dim=2))  # 计算权重
     
-        # 加权融合
+        # 重新调整 weight 的形状以匹配 out
+        weight = weight.view(batch_size, -1, 1, 1)  # (batch_size, len(kernel_sizes), 1, 1)
+    
+        # 将 conv_outputs 变为合适的形状
         out = torch.stack(conv_outputs, dim=1)  # (batch_size, len(kernel_sizes), out_channels, num_points, k)
     
-        # 确保权重的维度与 out 匹配
-        weight = weight.unsqueeze(2).unsqueeze(3)  # (batch_size, len(kernel_sizes), 1, 1)
-        
         # 加权
         out = (out * weight).sum(dim=1)  # 根据权重进行加权
     
         return out.squeeze(-1)  # 返回的形状是 (batch_size, out_channels, num_points)
+
 
 
 
