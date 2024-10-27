@@ -85,6 +85,7 @@ class SelectiveKernel(nn.Module):
         )
 
     def forward(self, x):
+        print("Input to SKN:", x.shape)  # 应该是 [batch_size, 512, num_points, k]
         # 收集所有卷积的输出
         conv_outputs = [conv(x) for conv in self.convs]
         concat_output = torch.cat(conv_outputs, dim=1)  # (batch_size, out_channels * len(kernel_sizes), H, W)
@@ -95,7 +96,7 @@ class SelectiveKernel(nn.Module):
 
         # 加权融合
         out = sum(w * conv_out for w, conv_out in zip(weight, conv_outputs))
-        print(f'SelectiveKernel input shape: {x.shape}')
+        
         return out
 
 
