@@ -85,21 +85,25 @@ class SelectiveKernel(nn.Module):
         )
 
     def forward(self, x):
-        print("Input to SKN:", x.shape)  # 应该是 [batch_size, 512, num_points, k]
+        print("Input to SKN:", x.shape)  # 应该是 [batch_size, in_channels, num_points, k]
+
         # 收集所有卷积的输出
-        conv_outputs = [conv(x) for conv in self.convs]
-        concat_output = torch.cat(conv_outputs, dim=1)  # (batch_size, out_channels * len(kernel_sizes), H, W)
+        conv_outputs = [conv(x) for conv in self.convs]  # 每个输出的形状是 [batch_size, out_channels, num_points, k]
+        
+        # 连接所有卷积输出
+        concat_output = torch.cat(conv_outputs, dim=1)  # (batch_size, len(kernel_sizes) * out_channels, num_points, k)
 
         # 计算选择权重
         batch_size = concat_output.size(0)
         weight = self.fc(concat_output.view(batch_size, -1))  # (batch_size, len(kernel_sizes))
 
         # 加权融合
-        
-        out = torch.stack(conv_outputs, dim=1)  # (batch_size, len(kernel_sizes), out_channels, H, W)
-        out = (out * weight.unsqueeze(2).unsqueeze(3).unsqueeze(4)).sum(dim=1)  # 根据权重进行加权
+        out = torch.stack(conv_outputs, dim=1)  # (batch_size, len(kernel_sizes), out_channels, num_points, k)
+        out = (out * weight.unsqueeze(2).unsqueeze(3)).sum(dim=1)  # 根据权重进行加权，保持 [batch_size, out_channels, num_points, k]
 
-        return out
+        # 去掉最后一个维度 k
+        return out.squeeze(-1)  # 返回的形状是 (batch_size, out_channels, num_points)
+
 
 
 class PointNet(nn.Module):
@@ -181,31 +185,31 @@ class DGCNN_cls(nn.Module):
         x = self.conv1(x)                       # (batch_size, 3*2, num_points, k) -> (batch_size, 64, num_points, k)
         x = self.se1(x)  # 添加 SEBlock
         x1 = x.max(dim=-1, keepdim=False)[0]    # (batch_size, 64, num_points, k) -> (batch_size, 64, num_points)
-        print(f'After conv1, x shape: {x.shape}')
-
+       
         x = get_graph_feature(x1, k=self.k)     # (batch_size, 64, num_points) -> (batch_size, 64*2, num_points, k)
         x = self.conv2(x)                       # (batch_size, 64*2, num_points, k) -> (batch_size, 64, num_points, k)
         x = self.se2(x)  # 添加 SEBlock
         x2 = x.max(dim=-1, keepdim=False)[0]    # (batch_size, 64, num_points, k) -> (batch_size, 64, num_points)
-        print(f'After conv2, x shape: {x.shape}')
+   
 
         x = get_graph_feature(x2, k=self.k)     # (batch_size, 64, num_points) -> (batch_size, 64*2, num_points, k)
         x = self.conv3(x)                       # (batch_size, 64*2, num_points, k) -> (batch_size, 128, num_points, k)
         x = self.se3(x)  # 添加 SEBlock
         x3 = x.max(dim=-1, keepdim=False)[0]    # (batch_size, 128, num_points, k) -> (batch_size, 128, num_points)
-        print(f'After conv3, x shape: {x.shape}')
+      
 
         x = get_graph_feature(x3, k=self.k)     # (batch_size, 128, num_points) -> (batch_size, 128*2, num_points, k)
         x = self.conv4(x)                       # (batch_size, 128*2, num_points, k) -> (batch_size, 256, num_points, k)
         x = self.se4(x)  # 添加 SEBlock
         x4 = x.max(dim=-1, keepdim=False)[0]    # (batch_size, 256, num_points, k) -> (batch_size, 256, num_points)
-        print(f'After conv4, x shape: {x.shape}')
-        print(f'Before concat, x shape: {x.shape}')
+      
         x = torch.cat((x1, x2, x3, x4), dim=1)  # (batch_size, 64+64+128+256, num_points)
-        print(f'After concat, x shape: {x.shape}')
-                 # 使用 SKN
-        x = self.skn1(x)  # 添加 SK 模块
-        print(f'After skn1, x shape: {x.shape}')
+        # 使用 SKN
+        x = x.unsqueeze(-1)  # 转换为 (batch_size, 512, num_points, 1)
+        x = self.skn1(x)     # 调用 SKN
+        x = x.squeeze(-1)    # 去掉多余的维度
+
+      
         x = self.conv5(x)                       # (batch_size, 64+64+128+256, num_points) -> (batch_size, emb_dims, num_points)
         x1 = F.adaptive_max_pool1d(x, 1).view(batch_size, -1)           # (batch_size, emb_dims, num_points) -> (batch_size, emb_dims)
         x2 = F.adaptive_avg_pool1d(x, 1).view(batch_size, -1)           # (batch_size, emb_dims, num_points) -> (batch_size, emb_dims)
