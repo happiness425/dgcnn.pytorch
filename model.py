@@ -142,7 +142,7 @@ class DGCNN_cls(nn.Module):
         self.bn4 = nn.BatchNorm2d(256)
         self.bn5 = nn.BatchNorm1d(args.emb_dims)
 
-        self.skn1 = SelectiveKernel(64+64+128+256, args.emb_dims)  # 使用合适的输入通道数 512
+        self.skn1 = SelectiveKernel(512, args.emb_dims)  # 使用合适的输入通道数 512
         
         self.conv1 = nn.Sequential(nn.Conv2d(6, 64, kernel_size=1, bias=False),
                                    self.bn1,
@@ -203,6 +203,8 @@ class DGCNN_cls(nn.Module):
 
                  # 使用 SKN
         x = self.skn1(x)  # 添加 SK 模块
+        print(f'Before SKN, x shape: {x.shape}')
+
 
         x = self.conv5(x)                       # (batch_size, 64+64+128+256, num_points) -> (batch_size, emb_dims, num_points)
         x1 = F.adaptive_max_pool1d(x, 1).view(batch_size, -1)           # (batch_size, emb_dims, num_points) -> (batch_size, emb_dims)
