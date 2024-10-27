@@ -97,14 +97,21 @@ class SelectiveKernel(nn.Module):
         # 计算选择权重
         batch_size = concat_output.size(0)
         num_points = concat_output.size(2)  # 获取 num_points
-        # 只展平除 batch_size 以外的维度
-        weight = self.fc(concat_output.view(batch_size, -1, num_points).mean(dim=2))  # 使用平均值，得到 (batch_size, len(kernel_sizes))
+        # 使用平均值，得到 (batch_size, len(kernel_sizes))
+        weight = self.fc(concat_output.view(batch_size, -1, num_points).mean(dim=2))  # 计算权重
+        print("Weight shape:", weight.shape)
+        print("Output shape:", out.shape)
+
     
         # 加权融合
         out = torch.stack(conv_outputs, dim=1)  # (batch_size, len(kernel_sizes), out_channels, num_points, k)
-        out = (out * weight.unsqueeze(2).unsqueeze(3)).sum(dim=1)  # 根据权重进行加权
+        
+        # 这里的 weight 需要与 out 进行匹配
+        weight = weight.unsqueeze(2).unsqueeze(3)  # (batch_size, len(kernel_sizes), 1, 1)
+        out = (out * weight).sum(dim=1)  # 根据权重进行加权
     
         return out.squeeze(-1)  # 返回的形状是 (batch_size, out_channels, num_points)
+
 
 
 class PointNet(nn.Module):
