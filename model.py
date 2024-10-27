@@ -74,14 +74,16 @@ class SEBlock(nn.Module):
         y = torch.sigmoid(self.fc2(y)).view(batch_size, channels, 1, 1)
         return x * y
 
-
 class SelectiveKernel(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_sizes=[3, 5, 7]):
         super(SelectiveKernel, self).__init__()
         self.convs = nn.ModuleList([nn.Conv2d(in_channels, out_channels, kernel_size=k, padding=k//2) for k in kernel_sizes])
-        # 更新全连接层的输入大小
+        self.kernel_sizes = kernel_sizes
+        self.out_channels = out_channels
+
+        # 不再直接使用 num_points
         self.fc = nn.Sequential(
-            nn.Linear(len(kernel_sizes) * out_channels * num_points, len(kernel_sizes)),  # 注意这里的输入大小
+            nn.Linear(len(kernel_sizes) * out_channels, len(kernel_sizes)),  # 修改为不使用 num_points
             nn.Softmax(dim=-1)
         )
 
@@ -102,9 +104,6 @@ class SelectiveKernel(nn.Module):
         out = (out * weight.unsqueeze(2).unsqueeze(3)).sum(dim=1)  # 根据权重进行加权
 
         return out.squeeze(-1)  # 返回的形状是 (batch_size, out_channels, num_points)
-
-
-
 
 class PointNet(nn.Module):
     def __init__(self, args, output_channels=40):
