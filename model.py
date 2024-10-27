@@ -95,8 +95,10 @@ class SelectiveKernel(nn.Module):
         weight = self.fc(concat_output.view(batch_size, -1))  # (batch_size, len(kernel_sizes))
 
         # 加权融合
-        out = sum(w * conv_out for w, conv_out in zip(weight, conv_outputs))
         
+        out = torch.stack(conv_outputs, dim=1)  # (batch_size, len(kernel_sizes), out_channels, H, W)
+        out = (out * weight.unsqueeze(2).unsqueeze(3).unsqueeze(4)).sum(dim=1)  # 根据权重进行加权
+
         return out
 
 
