@@ -148,7 +148,7 @@ def prepare_test_data_semseg():
 
 def load_data_semseg(partition, test_area):
    
-    DATA_DIR = '/kaggle/input/indoor3d-sem-seg-hdf5-data/indoor3d_sem_seg_hdf5_data'
+    DATA_DIR = '/kaggle/input/indoor3d-sem-seg-hdf5-data'
     download_S3DIS()
     prepare_test_data_semseg()
     with open(os.path.join(DATA_DIR, "all_files.txt")) as f:
