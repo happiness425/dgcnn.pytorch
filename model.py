@@ -179,35 +179,31 @@ class DGCNN_cls(nn.Module):
         x = self.conv1(x)                       # (batch_size, 3*2, num_points, k) -> (batch_size, 64, num_points, k)
         x = self.se1(x)  # 添加 SEBlock
         x1 = x.max(dim=-1, keepdim=False)[0]    # (batch_size, 64, num_points, k) -> (batch_size, 64, num_points)
+        print(f'After conv1, x shape: {x.shape}')
 
         x = get_graph_feature(x1, k=self.k)     # (batch_size, 64, num_points) -> (batch_size, 64*2, num_points, k)
         x = self.conv2(x)                       # (batch_size, 64*2, num_points, k) -> (batch_size, 64, num_points, k)
         x = self.se2(x)  # 添加 SEBlock
         x2 = x.max(dim=-1, keepdim=False)[0]    # (batch_size, 64, num_points, k) -> (batch_size, 64, num_points)
+        print(f'After conv2, x shape: {x.shape}')
 
         x = get_graph_feature(x2, k=self.k)     # (batch_size, 64, num_points) -> (batch_size, 64*2, num_points, k)
         x = self.conv3(x)                       # (batch_size, 64*2, num_points, k) -> (batch_size, 128, num_points, k)
         x = self.se3(x)  # 添加 SEBlock
         x3 = x.max(dim=-1, keepdim=False)[0]    # (batch_size, 128, num_points, k) -> (batch_size, 128, num_points)
+        print(f'After conv3, x shape: {x.shape}')
 
         x = get_graph_feature(x3, k=self.k)     # (batch_size, 128, num_points) -> (batch_size, 128*2, num_points, k)
         x = self.conv4(x)                       # (batch_size, 128*2, num_points, k) -> (batch_size, 256, num_points, k)
         x = self.se4(x)  # 添加 SEBlock
         x4 = x.max(dim=-1, keepdim=False)[0]    # (batch_size, 256, num_points, k) -> (batch_size, 256, num_points)
-
-        x = torch.cat((x1, x2, x3, x4), dim=1)  # (batch_size, 64+64+128+256, num_points)
-        
-        print(f'x1 shape: {x1.shape}')
-        print(f'x2 shape: {x2.shape}')
-        print(f'x3 shape: {x3.shape}')
-        print(f'x4 shape: {x4.shape}')
+        print(f'After conv4, x shape: {x.shape}')
         print(f'Before concat, x shape: {x.shape}')
-
+        x = torch.cat((x1, x2, x3, x4), dim=1)  # (batch_size, 64+64+128+256, num_points)
+        print(f'After concat, x shape: {x.shape}')
                  # 使用 SKN
         x = self.skn1(x)  # 添加 SK 模块
-        print(f'Before SKN, x shape: {x.shape}')
-
-
+        print(f'After skn1, x shape: {x.shape}')
         x = self.conv5(x)                       # (batch_size, 64+64+128+256, num_points) -> (batch_size, emb_dims, num_points)
         x1 = F.adaptive_max_pool1d(x, 1).view(batch_size, -1)           # (batch_size, emb_dims, num_points) -> (batch_size, emb_dims)
         x2 = F.adaptive_avg_pool1d(x, 1).view(batch_size, -1)           # (batch_size, emb_dims, num_points) -> (batch_size, emb_dims)
