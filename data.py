@@ -47,8 +47,8 @@ def download_shapenetpart():
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     DATA_DIR = os.path.join(BASE_DIR, 'data')
       # 如果数据集已经上传，直接使用它的路径
-    if os.path.exists('/kaggle/input/shapenet_part_seg_hdf5_data'):
-        DATA_DIR = '/kaggle/input/shapenet_part_seg_hdf5_data'
+    if os.path.exists('/kaggle/input/shapenet-part-seg-hdf5-data'):
+        DATA_DIR = '/kaggle/input/shapenet-part-seg-hdf5-data'
         print(f"Using uploaded dataset at {DATA_DIR}")
         return DATA_DIR
     if not os.path.exists(DATA_DIR):
@@ -65,8 +65,8 @@ def download_S3DIS():
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     DATA_DIR = os.path.join(BASE_DIR, 'data')
      # 如果数据集已经上传，直接使用它的路径
-    if os.path.exists('/kaggle/input/indoor3d_sem_seg_hdf5_data'):
-        DATA_DIR = '/kaggle/input/indoor3d_sem_seg_hdf5_data'
+    if os.path.exists('/kaggle/input/indoor3d-sem-seg-hdf5-data'):
+        DATA_DIR = '/kaggle/input/indoor3d-sem-seg-hdf5-data'
         print(f"Using uploaded dataset at {DATA_DIR}")
         return DATA_DIR
     if not os.path.exists(DATA_DIR):
