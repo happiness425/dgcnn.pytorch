@@ -228,16 +228,16 @@ class DGCNN_cls(nn.Module):
         x4 = x.max(dim=-1, keepdim=False)[0]    # (batch_size, 256, num_points, k) -> (batch_size, 256, num_points)
       
         x = torch.cat((x1, x2, x3, x4), dim=1)  # (batch_size, 64+64+128+256, num_points)
+                # 使用 SKN
+        x = x.unsqueeze(-1)  # 转换为 (batch_size, 512, num_points, 1)
+        print("Input shape before SKN:", x.shape)  # 期望输出 [16, 512, num_points, 1]
+        x = self.skn1(x)     # 调用 SKN
+        x = x.squeeze(-1)    # 去掉多余的维度
       
         x = self.conv5(x)                       # (batch_size, 64+64+128+256, num_points) -> (batch_size, emb_dims, num_points)
         x1 = F.adaptive_max_pool1d(x, 1).view(batch_size, -1)           # (batch_size, emb_dims, num_points) -> (batch_size, emb_dims)
         x2 = F.adaptive_avg_pool1d(x, 1).view(batch_size, -1)           # (batch_size, emb_dims, num_points) -> (batch_size, emb_dims)
         x = torch.cat((x1, x2), 1)              # (batch_size, emb_dims*2)
-        # 使用 SKN
-        x = x.unsqueeze(-1)  # 转换为 (batch_size, 512, num_points, 1)
-        print("Input shape before SKN:", x.shape)  # 期望输出 [16, 512, num_points, 1]
-        x = self.skn1(x)     # 调用 SKN
-        x = x.squeeze(-1)    # 去掉多余的维度
 
         x = F.leaky_relu(self.bn6(self.linear1(x)), negative_slope=0.2) # (batch_size, emb_dims*2) -> (batch_size, 512)
         x = self.dp1(x)
