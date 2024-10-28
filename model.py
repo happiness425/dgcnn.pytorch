@@ -75,6 +75,8 @@ class SEBlock(nn.Module):
         return x * y
 
 class SelectiveKernel(nn.Module):
+    print("SelectiveKernel defined")
+    # 其他代码
     def __init__(self, in_channels, out_channels, kernel_sizes=[3, 5, 7]):
         super(SelectiveKernel, self).__init__()
         self.convs = nn.ModuleList([
