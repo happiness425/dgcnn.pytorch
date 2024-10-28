@@ -108,31 +108,21 @@ class SelectiveKernel(nn.Module):
 
         # 计算选择权重
         weight = self.fc(concat_output)  # 使用全局平均池化的输出
-
+        
         # 确保 weight 形状为 (batch_size, len(kernel_sizes))
         weight = weight.view(weight.size(0), -1, 1)  # (batch_size, num_kernels, 1)
-
+        
         # 将 conv_outputs 变为合适的形状
         out = torch.stack(conv_outputs, dim=1)  # (batch_size, len(kernel_sizes), out_channels)
-
+        
         # 加权操作调整
-        out = out * weight.unsqueeze(-1)  # 根据权重进行加权
-
+        # 需要调整 weight 的维度，以匹配 out 的维度
+        out = out * weight.unsqueeze(-1)  # 根据权重进行加权，确保 weight 形状为 (batch_size, num_kernels, 1)
+        
         # 聚合结果
         out = out.sum(dim=1)  # (batch_size, out_channels)
-
+        
         return out  # 返回的形状是 (batch_size, out_channels)
-
-# 示例调用
-in_channels = 1024  # 确保这里的 in_channels 与前一层输出通道数一致
-out_channels = 512   # 根据需要设置输出通道数
-# 在调用 SelectiveKernel 之前，检查输入形状
-input_tensor = torch.randn(16, in_channels, 1024, 1)  # 例如，模拟输入
-print("Input shape to SKN:", input_tensor.shape)
-
-model = SelectiveKernel(in_channels, out_channels)
-output = model(input_tensor)  # 确保输入维度正确
-
 
 class PointNet(nn.Module):
     def __init__(self, args, output_channels=40):
