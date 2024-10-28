@@ -75,8 +75,6 @@ class SEBlock(nn.Module):
         return x * y
 
 class SelectiveKernel(nn.Module):
-    print("SelectiveKernel defined")
-    # 其他代码
     def __init__(self, in_channels, out_channels, kernel_sizes=[3, 5, 7]):
         super(SelectiveKernel, self).__init__()
         self.convs = nn.ModuleList([
@@ -127,10 +125,10 @@ class SelectiveKernel(nn.Module):
     
         return out  # 返回的形状是 (batch_size, out_channels)
     
-    # 在创建模型时，确保使用正确的输入和输出通道数
-    in_channels = 512  # 确保这里的 in_channels 与前一层输出通道数一致
-    out_channels = 512  # 输出通道数
-    model = SelectiveKernel(in_channels, out_channels)
+        # 在创建模型时，确保使用正确的输入和输出通道数
+        in_channels = 512  # 确保这里的 in_channels 与前一层输出通道数一致
+        out_channels = 512  # 输出通道数
+        model = SelectiveKernel(in_channels, out_channels)
     
 
 class PointNet(nn.Module):
