@@ -80,9 +80,9 @@ class SelectiveKernel(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_sizes=[3, 5, 7]):
         super(SelectiveKernel, self).__init__()
         self.convs = nn.ModuleList([
-            nn.Conv2d(in_channels, 1024, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
-            nn.Conv2d(in_channels, 1024, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2)),
-            nn.Conv2d(in_channels, 1024, kernel_size=(7, 7), stride=(1, 1), padding=(3, 3)),
+            nn.Conv2d(512, 1024, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
+            nn.Conv2d(512, 1024, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2)),
+            nn.Conv2d(512, 1024, kernel_size=(7, 7), stride=(1, 1), padding=(3, 3)),
         ])
         self.kernel_sizes = kernel_sizes
         self.out_channels = out_channels
