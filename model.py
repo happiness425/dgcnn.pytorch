@@ -94,8 +94,7 @@ class SelectiveKernel(nn.Module):
 
     def forward(self, x):
         print("Input to SKN:", x.shape)
-    
-       conv_outputs = [conv(x) for conv in self.convs]
+        conv_outputs = [conv(x) for conv in self.convs]
 
         if not conv_outputs:
             raise ValueError("conv_outputs is empty. Check your convolution layers.")
