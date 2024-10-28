@@ -74,6 +74,7 @@ class SEBlock(nn.Module):
         y = torch.sigmoid(self.fc2(y)).view(batch_size, channels, 1, 1)
         return x * y
 
+
 class SelectiveKernel(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_sizes=[3, 5, 7]):
         super(SelectiveKernel, self).__init__()
@@ -81,10 +82,8 @@ class SelectiveKernel(nn.Module):
         self.kernel_sizes = kernel_sizes
         self.out_channels = out_channels
 
-        self.fc = nn.Sequential(
-            nn.Linear(len(kernel_sizes) * out_channels, len(kernel_sizes)),
-            nn.Softmax(dim=-1)
-        )
+        # 修改全连接层的输入维度
+        self.fc = nn.Linear(len(kernel_sizes) * out_channels, len(kernel_sizes))
 
     def forward(self, x):
         print("Input to SKN:", x.shape)
@@ -95,32 +94,29 @@ class SelectiveKernel(nn.Module):
             raise ValueError("conv_outputs is empty. Check your convolution layers.")
         
         # 进行拼接
-        concat_output = torch.cat(conv_outputs, dim=1)  # (batch_size, len(kernel_sizes) * out_channels, num_points)
-    
-        # 使用全局平均池化移除 num_points 维度
-        concat_output = concat_output.mean(dim=-1)  # (batch_size, len(kernel_sizes) * out_channels)
+        concat_output = torch.cat(conv_outputs, dim=1)  # (batch_size, len(kernel_sizes) * out_channels, height, width)
+
+        # 使用全局平均池化移除 height 和 width 维度
+        concat_output = concat_output.mean(dim=(-1, -2))  # (batch_size, len(kernel_sizes) * out_channels)
         print(f'concat_output shape: {concat_output.shape}')
     
-        # 在这里展平 concat_output
-        batch_size = concat_output.size(0)
-        concat_output_flat = concat_output.view(batch_size, -1)  # 变为 [batch_size, len(kernel_sizes) * out_channels]
-    
         # 计算选择权重
-        weight = self.fc(concat_output_flat)  # 使用展平的输出
+        weight = self.fc(concat_output)  # 使用全局平均池化的输出
     
         # 确保 weight 形状为 (batch_size, len(kernel_sizes))
         weight = weight.view(weight.size(0), -1, 1)  # (batch_size, num_kernels, 1)
     
         # 将 conv_outputs 变为合适的形状
-        out = torch.stack(conv_outputs, dim=1)  # (batch_size, len(kernel_sizes), out_channels, num_points)
+        out = torch.stack(conv_outputs, dim=1)  # (batch_size, len(kernel_sizes), out_channels, height, width)
     
         # 加权
-        out = out * weight.unsqueeze(-1)  # 根据权重进行加权
+        out = out * weight.unsqueeze(-1).unsqueeze(-1)  # 根据权重进行加权
     
         # 聚合结果
-        out = out.sum(dim=1)  # (batch_size, out_channels, num_points)
-        
-        return out.squeeze(-1)  # 返回的形状是 (batch_size, out_channels, num_points)
+        out = out.sum(dim=1)  # (batch_size, out_channels, height, width)
+
+        return out  # 返回的形状是 (batch_size, out_channels, height, width)
+
 
 class PointNet(nn.Module):
     def __init__(self, args, output_channels=40):
