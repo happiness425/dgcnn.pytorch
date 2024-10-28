@@ -74,8 +74,6 @@ class SEBlock(nn.Module):
         y = torch.sigmoid(self.fc2(y)).view(batch_size, channels, 1, 1)
         return x * y
 
-
-
 class SelectiveKernel(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_sizes=[3, 5, 7]):
         super(SelectiveKernel, self).__init__()
@@ -151,6 +149,7 @@ class PointNet(nn.Module):
         self.bn6 = nn.BatchNorm1d(512)
         self.dp1 = nn.Dropout()
         self.linear2 = nn.Linear(512, output_channels)
+        self.skn1 = SelectiveKernel(in_channels=512, out_channels=512)
 
     def forward(self, x):
         x = F.relu(self.bn1(self.conv1(x)))
