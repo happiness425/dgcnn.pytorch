@@ -95,11 +95,7 @@ class SelectiveKernel(nn.Module):
     def forward(self, x):
         print("Input to SKN:", x.shape)
     
-        conv_outputs = []
-        for i, conv in enumerate(self.convs):
-            output = conv(x)
-            print(f'Conv {i} output shape: {output.shape}')  # 打印每个卷积输出的形状
-            conv_outputs.append(output)
+       conv_outputs = [conv(x) for conv in self.convs]
 
         if not conv_outputs:
             raise ValueError("conv_outputs is empty. Check your convolution layers.")
@@ -234,14 +230,6 @@ class DGCNN_cls(nn.Module):
         x4 = x.max(dim=-1, keepdim=False)[0]    # (batch_size, 256, num_points, k) -> (batch_size, 256, num_points)
       
         x = torch.cat((x1, x2, x3, x4), dim=1)  # (batch_size, 64+64+128+256, num_points)
-                # 在调用 SKN 前打印各部分的形状
-        print("x1 shape:", x1.shape)  # 应该是 [16, 64, num_points]
-        print("x2 shape:", x2.shape)  # 应该是 [16, 64, num_points]
-        print("x3 shape:", x3.shape)  # 应该是 [16, 128, num_points]
-        print("x4 shape:", x4.shape)  # 应该是 [16, 256, num_points]
-        
-
-        print("Final input shape to SKN:", x.shape)  # 应该是 [16, 512, num_points, 1]
 
         # 使用 SKN
         x = x.unsqueeze(-1)  # 转换为 (batch_size, 512, num_points, 1)
