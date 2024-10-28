@@ -99,7 +99,12 @@ class SelectiveKernel(nn.Module):
 
         # 使用全局平均池化移除 height 和 width 维度
         concat_output = concat_output.mean(dim=(-1, -2))  # (batch_size, len(kernel_sizes) * out_channels)
-        print(f'concat_output shape: {concat_output.shape}')
+
+        for i, conv in enumerate(self.convs):
+            output = conv(x)
+            print(f'Conv output {i} shape: {output.shape}')
+            conv_outputs.append(output)
+
 
         # 计算选择权重
         weight = self.fc(concat_output)  # 使用全局平均池化的输出
@@ -121,7 +126,12 @@ class SelectiveKernel(nn.Module):
 # 示例调用
 in_channels = 1024  # 确保这里的 in_channels 与前一层输出通道数一致
 out_channels = 512   # 根据需要设置输出通道数
+# 在调用 SelectiveKernel 之前，检查输入形状
+input_tensor = torch.randn(16, in_channels, 1024, 1)  # 例如，模拟输入
+print("Input shape to SKN:", input_tensor.shape)
+
 model = SelectiveKernel(in_channels, out_channels)
+output = model(input_tensor)  # 确保输入维度正确
 
 
 class PointNet(nn.Module):
