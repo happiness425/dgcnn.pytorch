@@ -23,10 +23,12 @@ import torch.optim as optim
 from torch.optim.lr_scheduler import CosineAnnealingLR, StepLR
 from data import ModelNet40
 from model import PointNet, DGCNN_cls
+from model import SelectiveKernel
 import numpy as np
 from torch.utils.data import DataLoader
 from util import cal_loss, IOStream
 import sklearn.metrics as metrics
+
 
 
 def _init_():
