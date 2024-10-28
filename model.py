@@ -81,9 +81,9 @@ class SelectiveKernel(nn.Module):
         super(SelectiveKernel, self).__init__()
         self.convs = nn.ModuleList([nn.Conv2d(in_channels, out_channels, kernel_size=k, padding=k//2) for k in kernel_sizes])
         self.kernel_sizes = kernel_sizes
-        self.out_channels = out_channels  # Ensure this is correct
+        self.out_channels = out_channels
 
-        # 修改全连接层的输入维度
+        # 全连接层的输入维度
         self.fc = nn.Linear(len(kernel_sizes) * out_channels, len(kernel_sizes))
 
     def forward(self, x):
@@ -94,32 +94,29 @@ class SelectiveKernel(nn.Module):
         if not conv_outputs:
             raise ValueError("conv_outputs is empty. Check your convolution layers.")
 
-        # 进行拼接
+        # 拼接所有卷积输出
         concat_output = torch.cat(conv_outputs, dim=1)  # (batch_size, len(kernel_sizes) * out_channels)
 
-        # 使用全局平均池化移除 height 和 width 维度
+        # 全局平均池化
         concat_output = concat_output.mean(dim=(-1, -2))  # (batch_size, len(kernel_sizes) * out_channels)
 
         # 计算选择权重
-        weight = self.fc(concat_output)  # 使用全局平均池化的输出
+        weight = self.fc(concat_output)  # (batch_size, len(kernel_sizes))
 
-        # 确保 weight 形状为 (batch_size, len(kernel_sizes))
-        weight = weight.view(weight.size(0), -1, 1)  # (batch_size, num_kernels, 1)
+        # 确保 weight 形状为 (batch_size, len(kernel_sizes), 1)
+        weight = weight.unsqueeze(-1)  # (batch_size, len(kernel_sizes), 1)
 
         # 将 conv_outputs 变为合适的形状
         out = torch.stack(conv_outputs, dim=1)  # (batch_size, len(kernel_sizes), out_channels)
 
-        # 这里需要确保 out 的第二维长度是 len(kernel_sizes)
-        if out.shape[1] != weight.shape[1]:
-            raise ValueError(f"Shape mismatch: out shape {out.shape} vs weight shape {weight.shape}")
-
-        # 加权操作调整
-        out = out * weight  # 直接进行加权操作，确保形状匹配
+        # 加权操作，确保 out 和 weight 形状匹配
+        out = out * weight.transpose(1, 2)  # (batch_size, len(kernel_sizes), out_channels)
 
         # 聚合结果
         out = out.sum(dim=1)  # (batch_size, out_channels)
 
         return out  # 返回的形状是 (batch_size, out_channels)
+
 
 
 class PointNet(nn.Module):
