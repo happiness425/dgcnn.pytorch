@@ -79,12 +79,8 @@ class SEBlock(nn.Module):
 class SelectiveKernel(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_sizes=[3, 5, 7]):
         super(SelectiveKernel, self).__init__()
-        self.convs = nn.ModuleList()
-        for k in kernel_sizes:
-            conv_layer = nn.Conv2d(in_channels, out_channels, kernel_size=k, padding=k//2)
-            print(f'Conv layer with kernel size {k}: in_channels={in_channels}, out_channels={out_channels}')
-            self.convs.append(conv_layer)
-    
+        self.conv = nn.Conv2d(in_channels=16, out_channels=1024, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+
         self.kernel_sizes = kernel_sizes
         self.out_channels = out_channels
     
