@@ -90,24 +90,28 @@ class SelectiveKernel(nn.Module):
         print("Input to SKN:", x.shape)
 
         conv_outputs = [conv(x) for conv in self.convs]
+        for i, output in enumerate(conv_outputs):
+            print(f'Conv output {i} shape: {output.shape}')
 
         if not conv_outputs:
             raise ValueError("conv_outputs is empty. Check your convolution layers.")
 
         # 拼接所有卷积输出
         concat_output = torch.cat(conv_outputs, dim=1)  # (batch_size, len(kernel_sizes) * out_channels)
+        print("Concatenated output shape:", concat_output.shape)
 
         # 全局平均池化
         concat_output = concat_output.mean(dim=(-1, -2))  # (batch_size, len(kernel_sizes) * out_channels)
+        print("After global average pooling shape:", concat_output.shape)
 
         # 计算选择权重
         weight = self.fc(concat_output)  # (batch_size, len(kernel_sizes))
-
-        # 确保 weight 形状为 (batch_size, len(kernel_sizes), 1)
         weight = weight.unsqueeze(-1)  # (batch_size, len(kernel_sizes), 1)
+        print("Weight shape:", weight.shape)
 
         # 将 conv_outputs 变为合适的形状
         out = torch.stack(conv_outputs, dim=1)  # (batch_size, len(kernel_sizes), out_channels)
+        print("Stacked conv outputs shape:", out.shape)
 
         # 加权操作，确保 out 和 weight 形状匹配
         out = out * weight.transpose(1, 2)  # (batch_size, len(kernel_sizes), out_channels)
@@ -116,7 +120,6 @@ class SelectiveKernel(nn.Module):
         out = out.sum(dim=1)  # (batch_size, out_channels)
 
         return out  # 返回的形状是 (batch_size, out_channels)
-
 
 
 class PointNet(nn.Module):
