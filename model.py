@@ -90,6 +90,7 @@ class SelectiveKernel(nn.Module):
         print("Input to SKN:", x.shape)
 
         conv_outputs = [conv(x) for conv in self.convs]
+
         for i, output in enumerate(conv_outputs):
             print(f'Conv output {i} shape: {output.shape}')
 
@@ -120,6 +121,12 @@ class SelectiveKernel(nn.Module):
         out = out.sum(dim=1)  # (batch_size, out_channels)
 
         return out  # 返回的形状是 (batch_size, out_channels)
+
+# 在创建模型时，确保使用正确的输出通道数
+in_channels = 512  # 确保这里的 in_channels 与前一层输出通道数一致
+out_channels = 512  # 输出通道数
+model = SelectiveKernel(in_channels, out_channels)
+
 
 
 class PointNet(nn.Module):
