@@ -99,6 +99,7 @@ class SelectiveKernel(nn.Module):
 
         # 使用全局平均池化移除 num_points 维度
         concat_output = concat_output.mean(dim=-1)  # (batch_size, len(kernel_sizes) * out_channels)
+        print(f'concat_output shape: {concat_output.shape}')
 
         # 计算选择权重
         weight = self.fc(concat_output)  # 直接用展平的输出
