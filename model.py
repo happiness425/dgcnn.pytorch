@@ -100,22 +100,21 @@ class SelectiveKernel(nn.Module):
 
         # 拼接所有卷积输出
         concat_output = torch.cat(conv_outputs, dim=1)  # (batch_size, len(kernel_sizes) * out_channels)
-        print("Concatenated output shape:", concat_output.shape)
+       
 
         # 全局平均池化
         concat_output = concat_output.mean(dim=(-1, -2))  # (batch_size, len(kernel_sizes) * out_channels)
-        print("After global average pooling shape:", concat_output.shape)
+ 
 
         # 计算选择权重
         weight = self.fc(concat_output)  # (batch_size, len(kernel_sizes))
         weight = weight.unsqueeze(-1)  # (batch_size, len(kernel_sizes), 1)
-        print("Weight shape:", weight.shape)
+   
 
         # 将 conv_outputs 变为合适的形状
         out = torch.stack(conv_outputs, dim=1)  # (batch_size, len(kernel_sizes), out_channels)
-        print("Stacked conv outputs shape:", out.shape)
-        print("Weight shape before transpose:", weight.shape)
-        print("Output shape before multiplication:", out.shape)
+    
+
         # 加权操作，确保 out 和 weight 形状匹配
         out = out * weight.transpose(1, 2)  # (batch_size, len(kernel_sizes), out_channels)
 
@@ -231,6 +230,7 @@ class DGCNN_cls(nn.Module):
         x = torch.cat((x1, x2, x3, x4), dim=1)  # (batch_size, 64+64+128+256, num_points)
         # 使用 SKN
         x = x.unsqueeze(-1)  # 转换为 (batch_size, 512, num_points, 1)
+        print("Input shape before SKN:", x.shape)  # 期望输出 [16, 512, num_points, 1]
         x = self.skn1(x)     # 调用 SKN
         x = x.squeeze(-1)    # 去掉多余的维度
 
