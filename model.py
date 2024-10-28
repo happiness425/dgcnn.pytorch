@@ -133,8 +133,6 @@ class SelectiveKernel(nn.Module):
     model = SelectiveKernel(in_channels, out_channels)
     
 
-
-
 class PointNet(nn.Module):
     def __init__(self, args, output_channels=40):
         super(PointNet, self).__init__()
