@@ -90,45 +90,48 @@ class SelectiveKernel(nn.Module):
         # 全连接层的输入维度
         self.fc = nn.Linear(len(kernel_sizes) * out_channels, len(kernel_sizes))
 
-
+    
     def forward(self, x):
+        batch_size = x.size(0)  # 获取 batch_size
+        num_points = x.size(2)  # 假设 x 的形状是 (batch_size, channels, num_points, 1)
+    
         print("Input to SKN:", x.shape)
+        
+        # 计算每个卷积的输出
         conv_outputs = [conv(x) for conv in self.convs]
-
+    
         if not conv_outputs:
             raise ValueError("conv_outputs is empty. Check your convolution layers.")
-
+    
         # 拼接所有卷积输出
         concat_output = torch.cat(conv_outputs, dim=1)  # (batch_size, len(kernel_sizes) * out_channels)
-       
-
+    
         # 全局平均池化
         concat_output = concat_output.mean(dim=(-1, -2))  # (batch_size, len(kernel_sizes) * out_channels)
- 
-
+    
         # 计算选择权重
         weight = self.fc(concat_output)  # (batch_size, len(kernel_sizes))
         weight = weight.unsqueeze(-1)  # (batch_size, len(kernel_sizes), 1)
-   
-
+    
         # 将 conv_outputs 变为合适的形状
         out = torch.stack(conv_outputs, dim=1)  # (batch_size, len(kernel_sizes), out_channels)
     
-        # 确保 weight 和 out 在这里的形状匹配
+        # 确保 out 的形状正确
         out = out.view(batch_size, -1, num_points)  # 调整为 (batch_size, feature_dim, num_points)
     
-            # 加权操作，确保 out 和 weight 形状匹配
+        # 加权操作，确保 out 和 weight 形状匹配
         out = out * weight.transpose(1, 2)  # (batch_size, len(kernel_sizes), out_channels)
-
+    
         # 聚合结果
         out = out.sum(dim=1)  # (batch_size, out_channels)
     
         return out  # 返回的形状是 (batch_size, out_channels)
-
-# 在创建模型时，确保使用正确的输出通道数
-in_channels = 512  # 确保这里的 in_channels 与前一层输出通道数一致
-out_channels = 512  # 输出通道数
-model = SelectiveKernel(in_channels, out_channels)
+    
+    # 在创建模型时，确保使用正确的输入和输出通道数
+    in_channels = 512  # 确保这里的 in_channels 与前一层输出通道数一致
+    out_channels = 512  # 输出通道数
+    model = SelectiveKernel(in_channels, out_channels)
+    
 
 
 
