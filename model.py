@@ -79,22 +79,27 @@ class SEBlock(nn.Module):
 class SelectiveKernel(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_sizes=[3, 5, 7]):
         super(SelectiveKernel, self).__init__()
-        self.convs = nn.ModuleList([nn.Conv2d(in_channels, out_channels, kernel_size=k, padding=k//2) for k in kernel_sizes])
+        self.convs = nn.ModuleList()
+        for k in kernel_sizes:
+            conv_layer = nn.Conv2d(in_channels, out_channels, kernel_size=k, padding=k//2)
+            print(f'Conv layer with kernel size {k}: in_channels={in_channels}, out_channels={out_channels}')
+            self.convs.append(conv_layer)
+    
         self.kernel_sizes = kernel_sizes
         self.out_channels = out_channels
-
+    
         # 全连接层的输入维度
         self.fc = nn.Linear(len(kernel_sizes) * out_channels, len(kernel_sizes))
 
+
     def forward(self, x):
         print("Input to SKN:", x.shape)
-
-        
+    
+        conv_outputs = []
         for i, conv in enumerate(self.convs):
             output = conv(x)
-            print(f'Conv {i} output shape: {output.shape}')
-        conv_outputs = [conv(x) for conv in self.convs]
-
+            print(f'Conv {i} output shape: {output.shape}')  # 打印每个卷积输出的形状
+            conv_outputs.append(output)
 
         if not conv_outputs:
             raise ValueError("conv_outputs is empty. Check your convolution layers.")
