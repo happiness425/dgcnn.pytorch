@@ -80,6 +80,7 @@ class SelectiveKernel(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_sizes=[3, 5, 7]):
         super(SelectiveKernel, self).__init__()
         self.convs = nn.ModuleList([nn.Conv2d(in_channels, out_channels, kernel_size=k, padding=k//2) for k in kernel_sizes])
+
         self.kernel_sizes = kernel_sizes
         self.out_channels = out_channels
 
@@ -113,7 +114,8 @@ class SelectiveKernel(nn.Module):
         # 将 conv_outputs 变为合适的形状
         out = torch.stack(conv_outputs, dim=1)  # (batch_size, len(kernel_sizes), out_channels)
         print("Stacked conv outputs shape:", out.shape)
-
+        print("Weight shape before transpose:", weight.shape)
+        print("Output shape before multiplication:", out.shape)
         # 加权操作，确保 out 和 weight 形状匹配
         out = out * weight.transpose(1, 2)  # (batch_size, len(kernel_sizes), out_channels)
 
