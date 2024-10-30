@@ -222,14 +222,14 @@ class DGCNN_cls(nn.Module):
         x = self.se4(x)  # 添加 SEBlock
         x4 = x.max(dim=-1, keepdim=False)[0]    # (batch_size, 256, num_points, k) -> (batch_size, 256, num_points)
         x = torch.cat((x1, x2, x3, x4), dim=1)  # (batch_size, 64+64+128+256, num_points)
-        print("Before SKN shape:", x.shape)  # 确保是 (batch_size, 512, num_points, 1)
-
-                # 使用 SKN
-        x = x.unsqueeze(-1)  # 转换为 (batch_size, 512, num_points, 1)
+        # 使用 SKN
+        print("Before SKN shape:", x.shape)  # 应该是 (batch_size, 512, 1024, 1)
+        x = x.unsqueeze(-1)  # 转换为 (batch_size, 512, 1024, 1)
+        print("After unsqueeze shape:", x.shape)  # 确保是 (batch_size, 512, 1024, 1)
         x = self.skn1(x)     # 调用 SKN
+        print("After SKN shape:", x.shape)  # 检查 SKN 的输出形状
         x = x.squeeze(-1)    # 去掉多余的维度
-        # 确保此处的 x 形状为 (batch_size, out_channels, num_points)
-        print("Output shape after SKN:", x.shape)
+
         x = self.conv5(x)                       # (batch_size, 64+64+128+256, num_points) -> (batch_size, emb_dims, num_points)
         x1 = F.adaptive_max_pool1d(x, 1).view(batch_size, -1)           # (batch_size, emb_dims, num_points) -> (batch_size, emb_dims)
         x2 = F.adaptive_avg_pool1d(x, 1).view(batch_size, -1)           # (batch_size, emb_dims, num_points) -> (batch_size, emb_dims)
