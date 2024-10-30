@@ -87,6 +87,7 @@ class SelectiveKernel(nn.Module):
         self.fc = nn.Linear(len(kernel_sizes) * out_channels, len(kernel_sizes))
 
     def forward(self, x):
+        print("Input to SKN:", x.shape)  # 添加这一行
         batch_size = x.size(0)
         num_points = x.size(2)
     
