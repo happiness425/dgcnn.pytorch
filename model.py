@@ -89,52 +89,57 @@ class SelectiveKernel(nn.Module):
         self.fc = nn.Linear(len(kernel_sizes) * out_channels, len(kernel_sizes))
 
     
-    def forward(self, x):
-        batch_size = x.size(0)  # 获取 batch_size
-        num_points = x.size(2)  # 假设 x 的形状是 (batch_size, channels, num_points, 1)
+class SelectiveKernel(nn.Module):
+    def __init__(self, in_channels, out_channels=512, kernel_sizes=[3, 5, 7]):
+        super(SelectiveKernel, self).__init__()
+        self.convs = nn.ModuleList([
+            nn.Conv2d(in_channels, out_channels, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
+            nn.Conv2d(in_channels, out_channels, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2)),
+            nn.Conv2d(in_channels, out_channels, kernel_size=(7, 7), stride=(1, 1), padding=(3, 3)),
+        ])
+        self.kernel_sizes = kernel_sizes
+        self.out_channels = out_channels
     
+        # 全连接层的输入维度
+        self.fc = nn.Linear(len(kernel_sizes) * out_channels, len(kernel_sizes))
+
+    def forward(self, x):
+        batch_size = x.size(0)
+        num_points = x.size(2)
+
         # 计算每个卷积的输出
         conv_outputs = [conv(x) for conv in self.convs]
-    
+        
         if not conv_outputs:
             raise ValueError("conv_outputs is empty. Check your convolution layers.")
-                # 确保 out_channels 一致
-        out_channels = out.shape[2]  # 这个值应该是你期望的
-        if out_channels != self.out_channels:
-            raise ValueError(f"Mismatch in out_channels: expected {self.out_channels}, got {out_channels}")
 
         # 拼接所有卷积输出
-        concat_output = torch.cat(conv_outputs, dim=1)  # (batch_size, len(kernel_sizes) * out_channels)
-    
+        concat_output = torch.cat(conv_outputs, dim=1)  # (batch_size, len(kernel_sizes) * out_channels, num_points, k)
+
         # 全局平均池化
         concat_output = concat_output.mean(dim=(-1, -2))  # (batch_size, len(kernel_sizes) * out_channels)
-    
+
         # 计算选择权重
         weight = self.fc(concat_output)  # (batch_size, len(kernel_sizes))
         weight = weight.unsqueeze(-1)  # (batch_size, len(kernel_sizes), 1)
-    
+
         # 将 conv_outputs 变为合适的形状
-        out = torch.stack(conv_outputs, dim=1)  # (batch_size, len(kernel_sizes), out_channels)
-    
+        out = torch.stack(conv_outputs, dim=1)  # (batch_size, len(kernel_sizes), out_channels, num_points)
+
         # 确保 out 的形状正确
-        out = out.view(batch_size, len(self.kernel_sizes), -1, num_points)  # 使用 self.kernel_sizes
-    
+        out = out.view(batch_size, len(self.kernel_sizes), -1, num_points)  # (batch_size, len(kernel_sizes), out_channels, num_points)
+
         # 扩展权重
         weight = weight.expand(-1, -1, num_points)  # (batch_size, len(kernel_sizes), num_points)
-    
+
         # 加权操作
         out = out * weight  # (batch_size, len(kernel_sizes), out_channels, num_points)
-    
+
         # 聚合结果
         out = out.sum(dim=1)  # (batch_size, out_channels)
-    
+
         return out  # 返回的形状是 (batch_size, out_channels)
-    
-        # 在创建模型时，确保使用正确的输入和输出通道数
-        in_channels = 512  # 确保这里的 in_channels 与前一层输出通道数一致
-        out_channels = 512  # 输出通道数
-        model = SelectiveKernel(in_channels, out_channels)
-    
+
 
 class PointNet(nn.Module):
     def __init__(self, args, output_channels=40):
@@ -181,7 +186,7 @@ class DGCNN_cls(nn.Module):
         self.bn4 = nn.BatchNorm2d(256)
         self.bn5 = nn.BatchNorm1d(args.emb_dims)
 
-        self.skn1 = SelectiveKernel(512, args.emb_dims)  # 使用合适的输入通道数 512
+        self.skn1 = SelectiveKernel(in_channels=512, out_channels=512)
         
         self.conv1 = nn.Sequential(nn.Conv2d(6, 64, kernel_size=1, bias=False),
                                    self.bn1,
