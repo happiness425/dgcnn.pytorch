@@ -92,7 +92,7 @@ class SelectiveKernel(nn.Module):
     def forward(self, x):
         batch_size = x.size(0)  # 获取 batch_size
         num_points = x.size(2)  # 假设 x 的形状是 (batch_size, channels, num_points, 1)
-        
+    
         # 计算每个卷积的输出
         conv_outputs = [conv(x) for conv in self.convs]
     
@@ -112,18 +112,18 @@ class SelectiveKernel(nn.Module):
         # 将 conv_outputs 变为合适的形状
         out = torch.stack(conv_outputs, dim=1)  # (batch_size, len(kernel_sizes), out_channels)
     
-        # 确保 out 的形状
-        out = out.view(batch_size, len(kernel_sizes), -1, num_points)  # (batch_size, len(kernel_sizes), out_channels, num_points)
-        
+        # 确保 out 的形状正确
+        out = out.view(batch_size, len(self.kernel_sizes), -1, num_points)  # 使用 self.kernel_sizes
+    
         # 扩展权重
         weight = weight.expand(-1, -1, num_points)  # (batch_size, len(kernel_sizes), num_points)
-        
+    
         # 加权操作
         out = out * weight  # (batch_size, len(kernel_sizes), out_channels, num_points)
-        
+    
         # 聚合结果
         out = out.sum(dim=1)  # (batch_size, out_channels)
-
+    
         return out  # 返回的形状是 (batch_size, out_channels)
     
         # 在创建模型时，确保使用正确的输入和输出通道数
