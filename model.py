@@ -123,7 +123,7 @@ class SelectiveKernel(nn.Module):
         weight = weight.expand(-1, -1, num_points)  # (batch_size, len(kernel_sizes), num_points)
     
         # 加权操作
-        out = out * weight
+        out = out * weight.unsqueeze(2)
         print("Out shape after weighting:", out.shape)
         print("Weight shape after weighting:", weight.shape)
         # 聚合结果
