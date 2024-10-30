@@ -84,8 +84,6 @@ class SelectiveKernel(nn.Module):
         ])
         self.kernel_sizes = kernel_sizes
         self.out_channels = out_channels
-    
-        # 全连接层的输入维度
         self.fc = nn.Linear(len(kernel_sizes) * out_channels, len(kernel_sizes))
 
     def forward(self, x):
@@ -224,6 +222,8 @@ class DGCNN_cls(nn.Module):
         x = self.se4(x)  # 添加 SEBlock
         x4 = x.max(dim=-1, keepdim=False)[0]    # (batch_size, 256, num_points, k) -> (batch_size, 256, num_points)
         x = torch.cat((x1, x2, x3, x4), dim=1)  # (batch_size, 64+64+128+256, num_points)
+        print("Before SKN shape:", x.shape)  # 确保是 (batch_size, 512, num_points, 1)
+
                 # 使用 SKN
         x = x.unsqueeze(-1)  # 转换为 (batch_size, 512, num_points, 1)
         x = self.skn1(x)     # 调用 SKN
