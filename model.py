@@ -73,21 +73,6 @@ class SEBlock(nn.Module):
         y = F.relu(self.fc1(y))
         y = torch.sigmoid(self.fc2(y)).view(batch_size, channels, 1, 1)
         return x * y
-
-class SelectiveKernel(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_sizes=[3, 5, 7]):
-        super(SelectiveKernel, self).__init__()
-        self.convs = nn.ModuleList([
-            nn.Conv2d(512, 1024, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
-            nn.Conv2d(512, 1024, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2)),
-            nn.Conv2d(512, 1024, kernel_size=(7, 7), stride=(1, 1), padding=(3, 3)),
-        ])
-        self.kernel_sizes = kernel_sizes
-        self.out_channels = out_channels
-    
-        # 全连接层的输入维度
-        self.fc = nn.Linear(len(kernel_sizes) * out_channels, len(kernel_sizes))
-
     
 class SelectiveKernel(nn.Module):
     def __init__(self, in_channels, out_channels=512, kernel_sizes=[3, 5, 7]):
@@ -254,7 +239,8 @@ class DGCNN_cls(nn.Module):
         x = x.unsqueeze(-1)  # 转换为 (batch_size, 512, num_points, 1)
         x = self.skn1(x)     # 调用 SKN
         x = x.squeeze(-1)    # 去掉多余的维度
-      
+        # 确保此处的 x 形状为 (batch_size, out_channels, num_points)
+        print("Output shape after SKN:", x.shape)
         x = self.conv5(x)                       # (batch_size, 64+64+128+256, num_points) -> (batch_size, emb_dims, num_points)
         x1 = F.adaptive_max_pool1d(x, 1).view(batch_size, -1)           # (batch_size, emb_dims, num_points) -> (batch_size, emb_dims)
         x2 = F.adaptive_avg_pool1d(x, 1).view(batch_size, -1)           # (batch_size, emb_dims, num_points) -> (batch_size, emb_dims)
