@@ -118,13 +118,12 @@ class SelectiveKernel(nn.Module):
         weight = weight.expand(-1, -1, num_points)  # (batch_size, len(kernel_sizes), num_points)
     
         # 加权操作
-        out = out * weight.unsqueeze(-1)  # (batch_size, len(kernel_sizes), out_channels, num_points) * (batch_size, len(kernel_sizes), num_points) -> (batch_size, len(kernel_sizes), out_channels, num_points)
+        out = out * weight.unsqueeze(-1)  # (batch_size, len(kernel_sizes), out_channels, num_points)
     
         # 聚合结果
         out = out.sum(dim=1)  # (batch_size, out_channels, num_points)
     
         return out.squeeze(-1)  # 返回的形状是 (batch_size, out_channels)
-
 
 
 class PointNet(nn.Module):
