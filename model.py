@@ -87,37 +87,43 @@ class SelectiveKernel(nn.Module):
         self.fc = nn.Linear(len(kernel_sizes) * out_channels, len(kernel_sizes))
 
     def forward(self, x):
-        print("Input to SKN:", x.shape)  # 添加这一行
+       
         batch_size = x.size(0)
         num_points = x.size(2)
-    
+        print("Input to SKN:", x.shape)  # 添加这一行
         # 计算每个卷积的输出
         conv_outputs = [conv(x) for conv in self.convs]
-    
+        print("Conv outputs shape:", [c.shape for c in conv_outputs])
         if not conv_outputs:
             raise ValueError("conv_outputs is empty. Check your convolution layers.")
     
         # 拼接所有卷积输出
         concat_output = torch.cat(conv_outputs, dim=1)  # (batch_size, len(kernel_sizes) * out_channels, num_points, 1)
+        print("Concat output shape:", concat_output.shape)
     
         # 全局平均池化
         concat_output = concat_output.mean(dim=(-1, -2))  # (batch_size, len(kernel_sizes) * out_channels)
+        print("Concat output after global avg pooling shape:", concat_output.shape
     
         # 计算选择权重
         weight = self.fc(concat_output)  # (batch_size, len(kernel_sizes))
         weight = weight.unsqueeze(-1)  # (batch_size, len(kernel_sizes), 1)
+        print("Weight shape:", weight.shape)
     
         # 将 conv_outputs 变为合适的形状
         out = torch.stack(conv_outputs, dim=1)  # (batch_size, len(kernel_sizes), out_channels, num_points, 1)
+        print("Out shape after stacking:", out.shape)
     
         # 确保 out 的形状正确
         out = out.view(batch_size, len(self.kernel_sizes), self.out_channels, num_points)  # (batch_size, len(kernel_sizes), out_channels, num_points)
+        print("Out shape after view:", out.shape)
     
         # 扩展权重
         weight = weight.expand(-1, -1, num_points)  # (batch_size, len(kernel_sizes), num_points)
     
         # 加权操作
         out = out * weight.unsqueeze(-1)  # (batch_size, len(kernel_sizes), out_channels, num_points)
+        print("Out shape after weighting:", out.shape)
     
         # 聚合结果
         out = out.sum(dim=1)  # (batch_size, out_channels, num_points)
