@@ -118,13 +118,14 @@ class SelectiveKernel(nn.Module):
         out = out.view(batch_size, len(self.kernel_sizes), self.out_channels, num_points)  # (batch_size, len(kernel_sizes), out_channels, num_points)
         
         print("Before weighting - Out shape:", out.shape)
+        print("Before weighting - Weight shape:", weight.shape)
         # 扩展权重
         weight = weight.expand(-1, -1, num_points)  # (batch_size, len(kernel_sizes), num_points)
     
         # 加权操作
         out = out * weight.unsqueeze(-1)  # (batch_size, len(kernel_sizes), out_channels, num_points)
         print("Out shape after weighting:", out.shape)
-    
+        print("Weight shape after weighting:", weight.shape)
         # 聚合结果
         out = out.sum(dim=1)  # (batch_size, out_channels, num_points)
         print("Output shape from SKN:", out.shape)  # 添加这一行
@@ -231,9 +232,9 @@ class DGCNN_cls(nn.Module):
         x4 = x.max(dim=-1, keepdim=False)[0]    # (batch_size, 256, num_points, k) -> (batch_size, 256, num_points)
         x = torch.cat((x1, x2, x3, x4), dim=1)  # (batch_size, 64+64+128+256, num_points)
         # 使用 SKN
-        print("Before SKN shape:", x.shape)  # 应该是 (batch_size, 512, 1024, 1)
+      
         x = x.unsqueeze(-1)  # 转换为 (batch_size, 512, 1024, 1)
-        print("After unsqueeze shape:", x.shape)  # 确保是 (batch_size, 512, 1024, 1)
+
         x = self.skn1(x)     # 调用 SKN
         print("After SKN shape:", x.shape)  # 检查 SKN 的输出形状
         x = x.squeeze(-1)    # 去掉多余的维度
