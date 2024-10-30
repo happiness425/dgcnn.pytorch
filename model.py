@@ -114,8 +114,8 @@ class SelectiveKernel(nn.Module):
     
         # 确保 out 的形状正确
         out = out.view(batch_size, -1, num_points)  # 调整为 (batch_size, feature_dim, num_points)
-         print("Out shape:", out.shape)
-         print("Weight shape:", weight.shape)
+        print("Out shape:", out.shape)
+        print("Weight shape:", weight.shape)
     
         # 加权操作，确保 out 和 weight 形状匹配
         out = out * weight.transpose(1, 2)  # (batch_size, len(kernel_sizes), out_channels)
