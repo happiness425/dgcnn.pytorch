@@ -98,7 +98,11 @@ class SelectiveKernel(nn.Module):
     
         if not conv_outputs:
             raise ValueError("conv_outputs is empty. Check your convolution layers.")
-    
+                # 确保 out_channels 一致
+        out_channels = out.shape[2]  # 这个值应该是你期望的
+        if out_channels != self.out_channels:
+            raise ValueError(f"Mismatch in out_channels: expected {self.out_channels}, got {out_channels}")
+
         # 拼接所有卷积输出
         concat_output = torch.cat(conv_outputs, dim=1)  # (batch_size, len(kernel_sizes) * out_channels)
     
