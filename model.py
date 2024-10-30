@@ -112,18 +112,19 @@ class SelectiveKernel(nn.Module):
         out = torch.stack(conv_outputs, dim=1)  # (batch_size, len(kernel_sizes), out_channels, num_points, 1)
     
         # 确保 out 的形状正确
-        out = out.view(batch_size, len(self.kernel_sizes), self.out_channels, num_points, 1)  # 使用 self.out_channels
+        out = out.view(batch_size, len(self.kernel_sizes), self.out_channels, num_points)  # (batch_size, len(kernel_sizes), out_channels, num_points)
     
         # 扩展权重
         weight = weight.expand(-1, -1, num_points)  # (batch_size, len(kernel_sizes), num_points)
     
         # 加权操作
-        out = out * weight.unsqueeze(-1)  # (batch_size, len(kernel_sizes), out_channels, num_points, 1)
+        out = out * weight.unsqueeze(-1)  # (batch_size, len(kernel_sizes), out_channels, num_points) * (batch_size, len(kernel_sizes), num_points) -> (batch_size, len(kernel_sizes), out_channels, num_points)
     
         # 聚合结果
-        out = out.sum(dim=1)  # (batch_size, out_channels, num_points, 1)
+        out = out.sum(dim=1)  # (batch_size, out_channels, num_points)
     
-        return out.squeeze(-1)  # 返回的形状是 (batch_size, out_channels, num_points)
+        return out.squeeze(-1)  # 返回的形状是 (batch_size, out_channels)
+
 
 
 class PointNet(nn.Module):
