@@ -112,17 +112,18 @@ class SelectiveKernel(nn.Module):
         # 将 conv_outputs 变为合适的形状
         out = torch.stack(conv_outputs, dim=1)  # (batch_size, len(kernel_sizes), out_channels)
     
-        # 确保 out 的形状正确
-        out = out.view(batch_size, -1, num_points)  # 调整为 (batch_size, feature_dim, num_points)
-        print("Out shape:", out.shape)
-        print("Weight shape:", weight.shape)
-    
-        # 加权操作，确保 out 和 weight 形状匹配
-        out = out * weight.transpose(1, 2)  # (batch_size, len(kernel_sizes), out_channels)
-    
+        # 确保 out 的形状
+        out = out.view(batch_size, len(kernel_sizes), -1, num_points)  # (batch_size, len(kernel_sizes), out_channels, num_points)
+        
+        # 扩展权重
+        weight = weight.expand(-1, -1, num_points)  # (batch_size, len(kernel_sizes), num_points)
+        
+        # 加权操作
+        out = out * weight  # (batch_size, len(kernel_sizes), out_channels, num_points)
+        
         # 聚合结果
         out = out.sum(dim=1)  # (batch_size, out_channels)
-    
+
         return out  # 返回的形状是 (batch_size, out_channels)
     
         # 在创建模型时，确保使用正确的输入和输出通道数
