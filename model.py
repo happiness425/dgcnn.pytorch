@@ -120,6 +120,7 @@ class SelectiveKernel(nn.Module):
     
         # 聚合结果
         out = out.sum(dim=1)  # (batch_size, out_channels, num_points)
+        print("Output shape from SKN:", out.shape)  # 添加这一行
     
         return out.squeeze(-1)  # 返回的形状是 (batch_size, out_channels)
 
