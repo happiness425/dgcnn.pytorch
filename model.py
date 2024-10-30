@@ -92,8 +92,6 @@ class SelectiveKernel(nn.Module):
     def forward(self, x):
         batch_size = x.size(0)  # 获取 batch_size
         num_points = x.size(2)  # 假设 x 的形状是 (batch_size, channels, num_points, 1)
-    
-        print("Input to SKN:", x.shape)
         
         # 计算每个卷积的输出
         conv_outputs = [conv(x) for conv in self.convs]
@@ -228,11 +226,9 @@ class DGCNN_cls(nn.Module):
         x = self.conv4(x)                       # (batch_size, 128*2, num_points, k) -> (batch_size, 256, num_points, k)
         x = self.se4(x)  # 添加 SEBlock
         x4 = x.max(dim=-1, keepdim=False)[0]    # (batch_size, 256, num_points, k) -> (batch_size, 256, num_points)
-      
         x = torch.cat((x1, x2, x3, x4), dim=1)  # (batch_size, 64+64+128+256, num_points)
                 # 使用 SKN
         x = x.unsqueeze(-1)  # 转换为 (batch_size, 512, num_points, 1)
-        print("Input shape before SKN:", x.shape)  # 期望输出 [16, 512, num_points, 1]
         x = self.skn1(x)     # 调用 SKN
         x = x.squeeze(-1)    # 去掉多余的维度
       
