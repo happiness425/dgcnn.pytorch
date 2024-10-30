@@ -103,7 +103,7 @@ class SelectiveKernel(nn.Module):
     
         # 全局平均池化
         concat_output = concat_output.mean(dim=(-1, -2))  # (batch_size, len(kernel_sizes) * out_channels)
-        print("Concat output after global avg pooling shape:", concat_output.shape
+        print("Concat output after global avg pooling shape:", concat_output.shape)
     
         # 计算选择权重
         weight = self.fc(concat_output)  # (batch_size, len(kernel_sizes))
