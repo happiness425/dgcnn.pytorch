@@ -44,9 +44,9 @@ def _init_():
     os.system('cp data.py outputs' + '/' + args.exp_name + '/' + 'data.py.backup')
 
 def train(args, io):
-    train_loader = DataLoader(ModelNet40(partition='train', num_points=args.num_points), num_workers=4,
+    train_loader = DataLoader(ModelNet40(partition='train', num_points=args.num_points), num_workers=1,
                               batch_size=args.batch_size, shuffle=True, drop_last=True)
-    test_loader = DataLoader(ModelNet40(partition='test', num_points=args.num_points), num_workers=4,
+    test_loader = DataLoader(ModelNet40(partition='test', num_points=args.num_points), num_workers=1,
                              batch_size=args.test_batch_size, shuffle=True, drop_last=False)
 
     device = torch.device("cuda" if args.cuda else "cpu")
