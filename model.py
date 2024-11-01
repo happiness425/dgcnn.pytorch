@@ -68,6 +68,7 @@ class SEBlock(nn.Module):
         self.fc2 = nn.Linear(channels // reduction, channels, bias=False)
 
     def forward(self, x):
+        print("Input shape in SEBlock:", x.shape)
         batch_size, channels, _, _ = x.size()
         y = F.adaptive_avg_pool2d(x, (1, 1)).view(batch_size, channels)
         y = F.relu(self.fc1(y))
@@ -87,7 +88,7 @@ class SelectiveKernel(nn.Module):
         self.fc = nn.Linear(len(kernel_sizes) * out_channels, len(kernel_sizes))
 
     def forward(self, x):
-       
+        print("Input shape in SelectiveKernel:", x.shape)
         batch_size = x.size(0)
         num_points = x.size(2)
       
