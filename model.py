@@ -196,7 +196,7 @@ class DGCNN_cls(nn.Module):
         #print(f"After get_graph_feature: {x.shape}")  # 打印第一层输出形状
         
         x = self.conv1(x)                       # (batch_size, 3*2, num_points, k) -> (batch_size, 64, num_points, k)
-        print(f"After conv1: {x.shape}")  # 打印conv1后的输出形状
+        #print(f"After conv1: {x.shape}")  # 打印conv1后的输出形状
         
         # 加入SENet和SKN
         x = self.senet1(x)  # 通过SENet调整通道
