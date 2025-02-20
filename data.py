@@ -29,8 +29,8 @@ def download_modelnet40():
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     DATA_DIR = os.path.join(BASE_DIR, 'data')
     # 如果数据集已经上传，直接使用它的路径
-    if os.path.exists('/kaggle/input/modelnet40-ply-hdf5-2048'):
-        DATA_DIR = '/kaggle/input/modelnet40-ply-hdf5-2048'
+    if os.path.exists('data/modelnet40-ply-hdf5-2048'):
+        DATA_DIR = 'data/modelnet40-ply-hdf5-2048'
         print(f"Using uploaded dataset at {DATA_DIR}")
         return DATA_DIR
     if not os.path.exists(DATA_DIR):
@@ -47,8 +47,8 @@ def download_shapenetpart():
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     DATA_DIR = os.path.join(BASE_DIR, 'data')
       # 如果数据集已经上传，直接使用它的路径
-    if os.path.exists('/kaggle/input/shapenet-part-seg-hdf5-data'):
-        DATA_DIR = '/kaggle/input/shapenet-part-seg-hdf5-data'
+    if os.path.exists('data/shapenet-part-seg-hdf5-data'):
+        DATA_DIR = 'data/shapenet-part-seg-hdf5-data'
         print(f"Using uploaded dataset at {DATA_DIR}")
         return DATA_DIR
     if not os.path.exists(DATA_DIR):
@@ -92,7 +92,7 @@ def download_S3DIS():
 def load_data_cls(partition):
     download_modelnet40()
   
-    DATA_DIR = '/kaggle/input/modelnet40-ply-hdf5-2048'
+    DATA_DIR = 'data/modelnet40-ply-hdf5-2048'
     all_data = []
     all_label = []
     for h5_name in glob.glob(os.path.join(DATA_DIR, 'modelnet40_ply_hdf5_2048', '*%s*.h5'%partition)):
@@ -113,7 +113,7 @@ def load_data_cls(partition):
 def load_data_partseg(partition):
     download_shapenetpart()
   
-    DATA_DIR = '/kaggle/input/shapenet-part-seg-hdf5-data'
+    DATA_DIR = 'data/shapenet-part-seg-hdf5-data'
     all_data = []
     all_label = []
     all_seg = []
