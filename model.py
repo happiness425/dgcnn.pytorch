@@ -61,73 +61,45 @@ def get_graph_feature(x, k=20, idx=None, dim9=False):
   
     return feature      # (batch_size, 2*num_dims, num_points, k)
 
-class SEBlock(nn.Module):
-    def __init__(self, channels, reduction=16):
-        super(SEBlock, self).__init__()
-        self.fc1 = nn.Linear(channels, channels // reduction, bias=False)
-        self.fc2 = nn.Linear(channels // reduction, channels, bias=False)
-
-    def forward(self, x):
-       
-        batch_size, channels, _, _ = x.size()
-        y = F.adaptive_avg_pool2d(x, (1, 1)).view(batch_size, channels)
-        y = F.relu(self.fc1(y))
-        y = torch.sigmoid(self.fc2(y)).view(batch_size, channels, 1, 1)
-        return x * y
-    
-class SelectiveKernel(nn.Module):
-    def __init__(self, in_channels, out_channels=512, kernel_sizes=[3, 5, 7]):
-        super(SelectiveKernel, self).__init__()
-        self.convs = nn.ModuleList([
-            nn.Conv2d(in_channels, out_channels, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
-            nn.Conv2d(in_channels, out_channels, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2)),
-            nn.Conv2d(in_channels, out_channels, kernel_size=(7, 7), stride=(1, 1), padding=(3, 3)),
-        ])
-        self.kernel_sizes = kernel_sizes
-        self.out_channels = out_channels
-        self.fc = nn.Linear(len(kernel_sizes) * out_channels, len(kernel_sizes))
-
-    def forward(self, x):
-     
-        batch_size = x.size(0)
-        num_points = x.size(2)
-      
-        # 计算每个卷积的输出
-        conv_outputs = [conv(x) for conv in self.convs]
-       
-        if not conv_outputs:
-            raise ValueError("conv_outputs is empty. Check your convolution layers.")
-    
-        # 拼接所有卷积输出
-        concat_output = torch.cat(conv_outputs, dim=1)  # (batch_size, len(kernel_sizes) * out_channels, num_points, 1)
-      
-    
+class SENet(nn.Module):
+    def __init__(self, in_channels, reduction=16):
+        super(SENet, self).__init__()
         # 全局平均池化
-        concat_output = concat_output.mean(dim=(-1, -2))  # (batch_size, len(kernel_sizes) * out_channels)
+        self.global_avg_pool = nn.AdaptiveAvgPool2d(1)
+        # 全连接层，减少通道数
+        self.fc1 = nn.Conv2d(in_channels, in_channels // reduction, 1, bias=False)
+        self.relu = nn.ReLU()
+        # 第二个全连接层，恢复通道数
+        self.fc2 = nn.Conv2d(in_channels // reduction, in_channels, 1, bias=False)
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        # 计算通道的全局平均池化
+        z = self.global_avg_pool(x)
+        z = self.fc1(z)
+        z = self.relu(z)
+        z = self.fc2(z)
+        # 获取每个通道的权重
+        scale = self.sigmoid(z)
+        # 将权重应用到输入特征上
+        return x * scale
 
     
-        # 计算选择权重
-        weight = self.fc(concat_output)  # (batch_size, len(kernel_sizes))
-        weight = weight.unsqueeze(-1)  # (batch_size, len(kernel_sizes), 1)
-  
-    
-        # 将 conv_outputs 变为合适的形状
-        out = torch.stack(conv_outputs, dim=1)  # (batch_size, len(kernel_sizes), out_channels, num_points, 1)
-       
-    
-        # 确保 out 的形状正确
-        out = out.view(batch_size, len(self.kernel_sizes), self.out_channels, num_points)  # (batch_size, len(kernel_sizes), out_channels, num_points)
-        
-        # 扩展权重
-        weight = weight.expand(-1, -1, num_points)  # (batch_size, len(kernel_sizes), num_points)
-    
-        # 加权操作
-        out = out * weight.unsqueeze(2)
+class SKN(nn.Module):
+    def __init__(self, in_channels):
+        super(SKN, self).__init__()
+        self.convs = nn.ModuleList([
+            nn.Conv2d(in_channels, in_channels, kernel_size=3, padding=1),
+            nn.Conv2d(in_channels, in_channels, kernel_size=5, padding=2),
+            nn.Conv2d(in_channels, in_channels, kernel_size=7, padding=3),
+        ])
+        self.weights = nn.Parameter(torch.ones(3))  # For selecting the best kernel
 
-        # 聚合结果
-        out = out.sum(dim=1)  # (batch_size, out_channels, num_points)
-    
-        return out.squeeze(-1)  # 返回的形状是 (batch_size, out_channels)
+    def forward(self, x):
+        convs_out = [conv(x) for conv in self.convs]
+        # Select the best kernel based on learned weights
+        out = sum(w * conv_out for w, conv_out in zip(self.weights, convs_out))
+        return out
 
 
 class PointNet(nn.Module):
@@ -175,24 +147,34 @@ class DGCNN_cls(nn.Module):
         self.bn4 = nn.BatchNorm2d(256)
         self.bn5 = nn.BatchNorm1d(args.emb_dims)
 
-        self.skn1 = SelectiveKernel(in_channels=512, out_channels=512)
+        # SENet和SKN需要调整通道数，因此要有对应的输出维度
+        self.senet1 = SENet(64)
+        self.senet2 = SENet(64)
+        self.senet3 = SENet(128)
+        self.senet4 = SENet(256)
+
+        #self.skn1 = SKN(64)  # SKN用于64通道的卷积层
+        #self.skn2 = SKN(64)  # SKN用于128通道的卷积层
+        #self.skn3 = SKN(128)  # SKN用于256通道的卷积层
+        self.skn4 = SKN(256)
+       
         
         self.conv1 = nn.Sequential(nn.Conv2d(6, 64, kernel_size=1, bias=False),
                                    self.bn1,
                                    nn.LeakyReLU(negative_slope=0.2))
-        self.se1 = SEBlock(64)  # 在 conv1 之后
-        self.conv2 = nn.Sequential(nn.Conv2d(64*2, 64, kernel_size=1, bias=False),
+
+        self.conv2 = nn.Sequential(nn.Conv2d(128, 64, kernel_size=1, bias=False),
                                    self.bn2,
                                    nn.LeakyReLU(negative_slope=0.2))
-        self.se2 = SEBlock(64)  # 在 conv2 之后
+      
         self.conv3 = nn.Sequential(nn.Conv2d(64*2, 128, kernel_size=1, bias=False),
                                    self.bn3,
                                    nn.LeakyReLU(negative_slope=0.2))
-        self.se3 = SEBlock(128) # 在 conv3 之后
+  
         self.conv4 = nn.Sequential(nn.Conv2d(128*2, 256, kernel_size=1, bias=False),
                                    self.bn4,
                                    nn.LeakyReLU(negative_slope=0.2))
-        self.se4 = SEBlock(256) # 在 conv4 之后
+
         self.conv5 = nn.Sequential(nn.Conv1d(512, args.emb_dims, kernel_size=1, bias=False),
                                    self.bn5,
                                    nn.LeakyReLU(negative_slope=0.2))
@@ -206,45 +188,95 @@ class DGCNN_cls(nn.Module):
 
     def forward(self, x):
         batch_size = x.size(0)
+        
+        # 第一层
         x = get_graph_feature(x, k=self.k)      # (batch_size, 3, num_points) -> (batch_size, 3*2, num_points, k)
+        #print(f"After get_graph_feature: {x.shape}")  # 打印第一层输出形状
+        
         x = self.conv1(x)                       # (batch_size, 3*2, num_points, k) -> (batch_size, 64, num_points, k)
-        x = self.se1(x)  # 添加 SEBlock
+        #print(f"After conv1: {x.shape}")  # 打印conv1后的输出形状
+        
+        # 加入SENet和SKN
+        x = self.senet1(x)  # 通过SENet调整通道
+        #print(f"After senet1: {x.shape}")  # 打印senet1后的输出形状
+    
+        #x = self.skn1(x)    # 通过SKN选择最佳卷积核
+        #print(f"After skn1: {x.shape}")  # 打印skn1后的输出形状
+        
         x1 = x.max(dim=-1, keepdim=False)[0]    # (batch_size, 64, num_points, k) -> (batch_size, 64, num_points)
-       
+        #print(f"After max pooling x1: {x1.shape}")  # 打印max pooling后的输出形状
+        
         x = get_graph_feature(x1, k=self.k)     # (batch_size, 64, num_points) -> (batch_size, 64*2, num_points, k)
+        #print(f"After get_graph_feature x1: {x.shape}")  # 打印get_graph_feature后的输出形状
+    
         x = self.conv2(x)                       # (batch_size, 64*2, num_points, k) -> (batch_size, 64, num_points, k)
-        x = self.se2(x)  # 添加 SEBlock
+        #print(f"After conv2: {x.shape}")  # 打印conv2后的输出形状
+        
+        x = self.senet2(x)  # 通过SENet调整通道
+        #print(f"After senet2: {x.shape}")  # 打印senet2后的输出形状
+        
+        #x = self.skn2(x)    # 通过SKN选择最佳卷积核
+        #print(f"After skn2: {x.shape}")  # 打印skn2后的输出形状
+        
         x2 = x.max(dim=-1, keepdim=False)[0]    # (batch_size, 64, num_points, k) -> (batch_size, 64, num_points)
-   
-
+        #print(f"After max pooling x2: {x2.shape}")  # 打印max pooling后的输出形状
+        
         x = get_graph_feature(x2, k=self.k)     # (batch_size, 64, num_points) -> (batch_size, 64*2, num_points, k)
+        #print(f"After get_graph_feature x2: {x.shape}")  # 打印get_graph_feature后的输出形状
+        
         x = self.conv3(x)                       # (batch_size, 64*2, num_points, k) -> (batch_size, 128, num_points, k)
-        x = self.se3(x)  # 添加 SEBlock
+        #print(f"After conv3: {x.shape}")  # 打印conv3后的输出形状
+        
+        x = self.senet3(x)  # 通过SENet调整通道
+        #print(f"After senet3: {x.shape}")  # 打印senet3后的输出形状
+        
+        #x = self.skn3(x)    # 通过SKN选择最佳卷积核
+        #print(f"After skn3: {x.shape}")  # 打印skn3后的输出形状
+        
         x3 = x.max(dim=-1, keepdim=False)[0]    # (batch_size, 128, num_points, k) -> (batch_size, 128, num_points)
-      
-
+        #print(f"After max pooling x3: {x3.shape}")  # 打印max pooling后的输出形状
+        
         x = get_graph_feature(x3, k=self.k)     # (batch_size, 128, num_points) -> (batch_size, 128*2, num_points, k)
+        #print(f"After get_graph_feature x3: {x.shape}")  # 打印get_graph_feature后的输出形状
+        
         x = self.conv4(x)                       # (batch_size, 128*2, num_points, k) -> (batch_size, 256, num_points, k)
-        x = self.se4(x)  # 添加 SEBlock
+        #print(f"After conv4: {x.shape}")  # 打印conv4后的输出形状
+        
+        x = self.senet4(x)  # SENet对通道进行加权  
+        #print(f"After senet4: {x.shape}")  # 打印senet4后的输出形状
+        x = self.skn4(x)
         x4 = x.max(dim=-1, keepdim=False)[0]    # (batch_size, 256, num_points, k) -> (batch_size, 256, num_points)
+        #print(f"After max pooling x4: {x4.shape}")  # 打印max pooling后的输出形状
+        
         x = torch.cat((x1, x2, x3, x4), dim=1)  # (batch_size, 64+64+128+256, num_points)
-        # 使用 SKN
-      
-        x = x.unsqueeze(-1)  # 转换为 (batch_size, 512, 1024, 1)
-
-        x = self.skn1(x)     # 调用 SKN
-        x = x.squeeze(-1)    # 去掉多余的维度
-
+        #print(f"After concatenation: {x.shape}")  # 打印拼接后的输出形状
+        
         x = self.conv5(x)                       # (batch_size, 64+64+128+256, num_points) -> (batch_size, emb_dims, num_points)
+        #print(f"After conv5: {x.shape}")  # 打印conv5后的输出形状
+        
         x1 = F.adaptive_max_pool1d(x, 1).view(batch_size, -1)           # (batch_size, emb_dims, num_points) -> (batch_size, emb_dims)
+        #print(f"After adaptive max pooling x1: {x1.shape}")  # 打印最大池化后的输出形状
+        
         x2 = F.adaptive_avg_pool1d(x, 1).view(batch_size, -1)           # (batch_size, emb_dims, num_points) -> (batch_size, emb_dims)
+        #print(f"After adaptive avg pooling x2: {x2.shape}")  # 打印平均池化后的输出形状
+        
         x = torch.cat((x1, x2), 1)              # (batch_size, emb_dims*2)
-
+        #print(f"After concatenation x1 and x2: {x.shape}")  # 打印拼接后的输出形状
+        
         x = F.leaky_relu(self.bn6(self.linear1(x)), negative_slope=0.2) # (batch_size, emb_dims*2) -> (batch_size, 512)
+        #print(f"After linear1 and leaky_relu: {x.shape}")  # 打印linear1后的输出形状
+        
         x = self.dp1(x)
+        #print(f"After dp1: {x.shape}")  # 打印dp1后的输出形状
+        
         x = F.leaky_relu(self.bn7(self.linear2(x)), negative_slope=0.2) # (batch_size, 512) -> (batch_size, 256)
+        #print(f"After linear2 and leaky_relu: {x.shape}")  # 打印linear2后的输出形状
+        
         x = self.dp2(x)
+        #print(f"After dp2: {x.shape}")  # 打印dp2后的输出形状
+        
         x = self.linear3(x)                                             # (batch_size, 256) -> (batch_size, output_channels)
+        #print(f"After linear3: {x.shape}")  # 打印linear3后的输出形状
         
         return x
 
