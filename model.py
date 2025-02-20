@@ -100,7 +100,7 @@ class SKN(nn.Module):
         concat_out = torch.cat(convs_out, dim=1)
         # 使用sigmoid生成门控系数
         gate = self.sigmoid(concat_out)
-        # 加权所有尺度的卷积输出
+        # 加权所有尺度的卷积输出1
         weighted_out = gate * concat_out
         return weighted_out
 
@@ -168,15 +168,15 @@ class DGCNN_cls(nn.Module):
                                    self.bn1,
                                    nn.LeakyReLU(negative_slope=0.2))
 
-        self.conv2 = nn.Sequential(nn.Conv2d(64*2, 64, kernel_size=1, bias=False),
+        self.conv2 = nn.Sequential(nn.Conv2d(128, 64, kernel_size=1, bias=False),
                                    self.bn2,
                                    nn.LeakyReLU(negative_slope=0.2))
       
-        self.conv3 = nn.Sequential(nn.Conv2d(64*2, 128, kernel_size=1, bias=False),
+        self.conv3 = nn.Sequential(nn.Conv2d(128*2, 128, kernel_size=1, bias=False),
                                    self.bn3,
                                    nn.LeakyReLU(negative_slope=0.2))
   
-        self.conv4 = nn.Sequential(nn.Conv2d(128*2, 256, kernel_size=1, bias=False),
+        self.conv4 = nn.Sequential(nn.Conv2d(256*2, 256, kernel_size=1, bias=False),
                                    self.bn4,
                                    nn.LeakyReLU(negative_slope=0.2))
 
