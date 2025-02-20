@@ -86,23 +86,21 @@ class SENet(nn.Module):
 
     
 class SKN(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_sizes=[3, 5, 7]):
+    def __init__(self, in_channels):
         super(SKN, self).__init__()
         self.convs = nn.ModuleList([
-            nn.Conv2d(in_channels, out_channels, kernel_size=k, padding=k//2) for k in kernel_sizes
+            nn.Conv2d(in_channels, in_channels, kernel_size=3, padding=1),
+            nn.Conv2d(in_channels, in_channels, kernel_size=5, padding=2),
+            nn.Conv2d(in_channels, in_channels, kernel_size=7, padding=3),
         ])
-        self.sigmoid = nn.Sigmoid()
+        self.weights = nn.Parameter(torch.ones(3))  # For selecting the best kernel
 
     def forward(self, x):
-        # 计算每个尺度的卷积结果
         convs_out = [conv(x) for conv in self.convs]
-        # 将卷积结果沿通道维度拼接
-        concat_out = torch.cat(convs_out, dim=1)
-        # 使用sigmoid生成门控系数
-        gate = self.sigmoid(concat_out)
-        # 加权所有尺度的卷积输出1
-        weighted_out = gate * concat_out
-        return weighted_out
+        # Select the best kernel based on learned weights
+        out = sum(w * conv_out for w, conv_out in zip(self.weights, convs_out))
+        return out
+
 
 
 
@@ -214,8 +212,8 @@ class DGCNN_cls(nn.Module):
         x = get_graph_feature(x1, k=self.k)     # (batch_size, 64, num_points) -> (batch_size, 64*2, num_points, k)
         print(f"After get_graph_feature x1: {x.shape}")  # 打印get_graph_feature后的输出形状
         # 添加一个卷积层，将通道数从 384 调整为 128
-        x = self.conv_reduce(x)  # (batch_size, 384, num_points, k) -> (batch_size, 128, num_points, k)
-        print(f"After conv_reduce: {x.shape}")
+        #x = self.conv_reduce(x)  # (batch_size, 384, num_points, k) -> (batch_size, 128, num_points, k)
+        #print(f"After conv_reduce: {x.shape}")
     
         x = self.conv2(x)                       # (batch_size, 64*2, num_points, k) -> (batch_size, 64, num_points, k)
         print(f"After conv2: {x.shape}")  # 打印conv2后的输出形状
