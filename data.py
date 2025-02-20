@@ -90,14 +90,12 @@ def download_S3DIS():
 
 
 def load_data_cls(partition):
-    
+    download_modelnet40()
   
-    DATA_DIR = '/content/gdrive/MyDrive/DGCNN/data/modelnet40-ply-hdf5-2048/modelnet40_ply_hdf5_2048'
-    print(f"Loading data from: {DATA_DIR}")
-
+    DATA_DIR = '/content/gdrive/MyDrive/DGCNN/data/modelnet40-ply-hdf5-2048'
     all_data = []
     all_label = []
-    for h5_name in glob.glob(os.path.join(DATA_DIR, '*%s*.h5'%partition)):
+    for h5_name in glob.glob(os.path.join(DATA_DIR, 'modelnet40_ply_hdf5_2048', '*%s*.h5'%partition)):
         f = h5py.File(h5_name, 'r')
         data = f['data'][:].astype('float32')
         label = f['label'][:].astype('int64')
