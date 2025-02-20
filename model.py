@@ -155,10 +155,10 @@ class DGCNN_cls(nn.Module):
         self.senet3 = SENet(128)
         self.senet4 = SENet(256)
 
-        self.skn1 = SKN(64)  # SKN用于64通道的卷积层
-        self.skn2 = SKN(64)  # SKN用于128通道的卷积层
-        self.skn3 = SKN(128)  # SKN用于256通道的卷积层
-    
+        #self.skn1 = SKN(64)  # SKN用于64通道的卷积层
+        #self.skn2 = SKN(64)  # SKN用于128通道的卷积层
+        #self.skn3 = SKN(128)  # SKN用于256通道的卷积层
+        self.skn4 = SKN(256)
        
         
         self.conv1 = nn.Sequential(nn.Conv2d(6, 64, kernel_size=1, bias=False),
@@ -202,7 +202,7 @@ class DGCNN_cls(nn.Module):
         x = self.senet1(x)  # 通过SENet调整通道
         #print(f"After senet1: {x.shape}")  # 打印senet1后的输出形状
     
-        x = self.skn1(x)    # 通过SKN选择最佳卷积核
+        #x = self.skn1(x)    # 通过SKN选择最佳卷积核
         #print(f"After skn1: {x.shape}")  # 打印skn1后的输出形状
         
         x1 = x.max(dim=-1, keepdim=False)[0]    # (batch_size, 64, num_points, k) -> (batch_size, 64, num_points)
@@ -217,7 +217,7 @@ class DGCNN_cls(nn.Module):
         x = self.senet2(x)  # 通过SENet调整通道
         #print(f"After senet2: {x.shape}")  # 打印senet2后的输出形状
         
-        x = self.skn2(x)    # 通过SKN选择最佳卷积核
+        #x = self.skn2(x)    # 通过SKN选择最佳卷积核
         #print(f"After skn2: {x.shape}")  # 打印skn2后的输出形状
         
         x2 = x.max(dim=-1, keepdim=False)[0]    # (batch_size, 64, num_points, k) -> (batch_size, 64, num_points)
@@ -232,7 +232,7 @@ class DGCNN_cls(nn.Module):
         x = self.senet3(x)  # 通过SENet调整通道
         #print(f"After senet3: {x.shape}")  # 打印senet3后的输出形状
         
-        x = self.skn3(x)    # 通过SKN选择最佳卷积核
+        #x = self.skn3(x)    # 通过SKN选择最佳卷积核
         #print(f"After skn3: {x.shape}")  # 打印skn3后的输出形状
         
         x3 = x.max(dim=-1, keepdim=False)[0]    # (batch_size, 128, num_points, k) -> (batch_size, 128, num_points)
@@ -246,7 +246,7 @@ class DGCNN_cls(nn.Module):
         
         x = self.senet4(x)  # SENet对通道进行加权  
         #print(f"After senet4: {x.shape}")  # 打印senet4后的输出形状
-        
+        x = self.skn4(x)
         x4 = x.max(dim=-1, keepdim=False)[0]    # (batch_size, 256, num_points, k) -> (batch_size, 256, num_points)
         #print(f"After max pooling x4: {x4.shape}")  # 打印max pooling后的输出形状
         
