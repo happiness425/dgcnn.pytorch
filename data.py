@@ -93,6 +93,8 @@ def load_data_cls(partition):
     #download_modelnet40()
   
     DATA_DIR = '/content/gdrive/MyDrive/DGCNN/data/modelnet40-ply-hdf5-2048/modelnet40_ply_hdf5_2048'
+    print(f"Loading data from: {DATA_DIR}")
+
     all_data = []
     all_label = []
     for h5_name in glob.glob(os.path.join(DATA_DIR, '*%s*.h5'%partition)):
