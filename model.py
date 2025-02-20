@@ -155,9 +155,9 @@ class DGCNN_cls(nn.Module):
         self.senet3 = SENet(128)
         self.senet4 = SENet(256)
 
-        self.skn1 = SKN(64, 64)  # SKN用于64通道的卷积层
-        self.skn2 = SKN(128, 128)  # SKN用于128通道的卷积层
-        self.skn3 = SKN(256, 256)  # SKN用于256通道的卷积层
+        self.skn1 = SKN(64)  # SKN用于64通道的卷积层
+        self.skn2 = SKN(128)  # SKN用于128通道的卷积层
+        self.skn3 = SKN(256)  # SKN用于256通道的卷积层
     
         # 定义用于调节通道数的卷积层 (conv_reduce)
         self.conv_reduce = nn.Conv2d(384, 128, 1)  # 将384通道调整为128通道
