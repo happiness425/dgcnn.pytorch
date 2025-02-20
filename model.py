@@ -159,8 +159,7 @@ class DGCNN_cls(nn.Module):
         self.skn2 = SKN(128)  # SKN用于128通道的卷积层
         self.skn3 = SKN(256)  # SKN用于256通道的卷积层
     
-        # 定义用于调节通道数的卷积层 (conv_reduce)
-        self.conv_reduce = nn.Conv2d(384, 128, 1)  # 将384通道调整为128通道
+       
         
         self.conv1 = nn.Sequential(nn.Conv2d(6, 64, kernel_size=1, bias=False),
                                    self.bn1,
@@ -211,9 +210,6 @@ class DGCNN_cls(nn.Module):
         
         x = get_graph_feature(x1, k=self.k)     # (batch_size, 64, num_points) -> (batch_size, 64*2, num_points, k)
         print(f"After get_graph_feature x1: {x.shape}")  # 打印get_graph_feature后的输出形状
-        # 添加一个卷积层，将通道数从 384 调整为 128
-        #x = self.conv_reduce(x)  # (batch_size, 384, num_points, k) -> (batch_size, 128, num_points, k)
-        #print(f"After conv_reduce: {x.shape}")
     
         x = self.conv2(x)                       # (batch_size, 64*2, num_points, k) -> (batch_size, 64, num_points, k)
         print(f"After conv2: {x.shape}")  # 打印conv2后的输出形状
