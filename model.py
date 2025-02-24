@@ -340,12 +340,6 @@ class DGCNN_partseg(nn.Module):
         self.k = args.k
         self.transform_net = Transform_Net(args)
 
-          # 创建注意力模块
-        self.attention1 = SEBlock(64)
-        self.attention2 = SEBlock(64)
-        self.attention3 = SEBlock(64)
-        self.attention4 = SEBlock(64)
-        self.attention5 = SEBlock(64)
         
         self.bn1 = nn.BatchNorm2d(64)
         self.bn2 = nn.BatchNorm2d(64)
@@ -358,7 +352,13 @@ class DGCNN_partseg(nn.Module):
         self.bn9 = nn.BatchNorm1d(256)
         self.bn10 = nn.BatchNorm1d(128)
 
-        self.skn1 = SelectiveKernel(64*5, args.emb_dims)  # 使用合适的输入通道数 1280
+        # SENet和SKN需要调整通道数，因此要有对应的输出维度
+        self.senet1 = SENet(64)
+        self.senet2 = SENet(64)
+        self.senet3 = SENet(64)
+     
+        
+        self.skn1 = SKN(64)
 
         
         self.conv1 = nn.Sequential(nn.Conv2d(6, 64, kernel_size=1, bias=False),
@@ -408,28 +408,34 @@ class DGCNN_partseg(nn.Module):
 
         x = get_graph_feature(x, k=self.k)      # (batch_size, 3, num_points) -> (batch_size, 3*2, num_points, k)
         x = self.conv1(x)                       # (batch_size, 3*2, num_points, k) -> (batch_size, 64, num_points, k)
-        x = self.attention1(x)  # 注意力机制
         x = self.conv2(x)                       # (batch_size, 64, num_points, k) -> (batch_size, 64, num_points, k)
-        x = self.attention2(x)  # 注意力机制
+        
+        x=self.senet1(x)    #添加SENet1
         x1 = x.max(dim=-1, keepdim=False)[0]    # (batch_size, 64, num_points, k) -> (batch_size, 64, num_points)
-
+    
+        
         x = get_graph_feature(x1, k=self.k)     # (batch_size, 64, num_points) -> (batch_size, 64*2, num_points, k)
         x = self.conv3(x)                       # (batch_size, 64*2, num_points, k) -> (batch_size, 64, num_points, k)
-        x = self.attention3(x)  # 注意力机制
         x = self.conv4(x)                       # (batch_size, 64, num_points, k) -> (batch_size, 64, num_points, k)
-        x = self.attention4(x)  # 注意力机制
+  
+        x=self.senet2(x)    #添加SENet2
         x2 = x.max(dim=-1, keepdim=False)[0]    # (batch_size, 64, num_points, k) -> (batch_size, 64, num_points)
-
+    
+       
         x = get_graph_feature(x2, k=self.k)     # (batch_size, 64, num_points) -> (batch_size, 64*2, num_points, k)
         x = self.conv5(x)                       # (batch_size, 64*2, num_points, k) -> (batch_size, 64, num_points, k)
-        x = self.attention5(x)  # 注意力机制
+   
+        x=self.senet3(x)    #添加SENet3
+        x=self.skn1(x)    #添加SKN
         x3 = x.max(dim=-1, keepdim=False)[0]    # (batch_size, 64, num_points, k) -> (batch_size, 64, num_points)
+       
 
         x = torch.cat((x1, x2, x3), dim=1)      # (batch_size, 64*3, num_points)
-         # 使用 SKN
-        x = self.skn1(x)  # 添加 SK 模块
+
 
         x = self.conv6(x)                       # (batch_size, 64*3, num_points) -> (batch_size, emb_dims, num_points)
+        
+        
         x = x.max(dim=-1, keepdim=True)[0]      # (batch_size, emb_dims, num_points) -> (batch_size, emb_dims, 1)
 
         l = l.view(batch_size, -1, 1)           # (batch_size, num_categoties, 1)
@@ -441,6 +447,8 @@ class DGCNN_partseg(nn.Module):
         x = torch.cat((x, x1, x2, x3), dim=1)   # (batch_size, 1088+64*3, num_points)
 
         x = self.conv8(x)                       # (batch_size, 1088+64*3, num_points) -> (batch_size, 256, num_points)
+        
+       
         x = self.dp1(x)
         x = self.conv9(x)                       # (batch_size, 256, num_points) -> (batch_size, 256, num_points)
         x = self.dp2(x)
@@ -493,16 +501,6 @@ class DGCNN_semseg_s3dis(nn.Module):
                                    nn.LeakyReLU(negative_slope=0.2))
         self.dp1 = nn.Dropout(p=args.dropout)
         self.conv9 = nn.Conv1d(256, 13, kernel_size=1, bias=False)
-
-      # 添加 SE 模块
-        self.se1 = SEBlock(64)
-        self.se2 = SEBlock(64)
-        self.se3 = SEBlock(64)
-        self.se4 = SEBlock(64)
-        self.se5 = SEBlock(64)
-        self.se6 = SEBlock(args.emb_dims)
-        self.se7 = SEBlock(512)
-        self.se8 = SEBlock(256)
         
 
     def forward(self, x):
